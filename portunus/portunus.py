@@ -5,13 +5,16 @@ import subprocess
 import sys
 from pprint import pprint
 
+import docker
 from examples import custom_style_2
 from PyInquirer import prompt
 from PyInquirer import Separator
 from PyInquirer import style_from_dict
 from PyInquirer import Token
 
+from portunus.validators import DockerNetworkValidator
 from portunus.validators import IPValidator
+from portunus.validators import KVMImageValidator
 from portunus.validators import NumberValidator
 
 
@@ -41,6 +44,15 @@ class Portunus():
                     print(output.strip())
                 break
         return return_code
+
+    @staticmethod
+    def find_docker_network(*args):
+        client = docker.from_env()
+        networks = client.networks.list('', filters={'driver': 'ovs'})
+        if len(networks) > 0:
+            return networks[0].name
+        else:
+            return ''
 
     @staticmethod
     def start_info(selections):
@@ -86,33 +98,73 @@ class Portunus():
                 },
             ]
             answers = prompt(faucet_questions, style=custom_style_2)
-            info.update(answers)
-            if 'gauge' in answers and answers['gauge']:
-                gauge_questions = [
-                    {
-                        'type': 'input',
-                        'name': 'gauge_ip',
-                        'default': answers['faucet_ip'],
-                        'validate': IPValidator,
-                        'message': 'What is the IP of Gauge?',
-                    },
-                    {
-                        'type': 'input',
-                        'name': 'gauge_port',
-                        'default': '6654',
-                        'message': 'What port is Gauge running on?',
-                        'validate': NumberValidator,
-                        'filter': lambda val: int(val)
-                    },
-                ]
-                answers = prompt(gauge_questions, style=custom_style_2)
+            if answers:
                 info.update(answers)
+                if 'gauge' in answers and answers['gauge']:
+                    gauge_questions = [
+                        {
+                            'type': 'input',
+                            'name': 'gauge_ip',
+                            'default': answers['faucet_ip'],
+                            'validate': IPValidator,
+                            'message': 'What is the IP of Gauge?',
+                        },
+                        {
+                            'type': 'input',
+                            'name': 'gauge_port',
+                            'default': '6654',
+                            'message': 'What port is Gauge running on?',
+                            'validate': NumberValidator,
+                            'filter': lambda val: int(val)
+                        },
+                    ]
+                    answers = prompt(gauge_questions, style=custom_style_2)
+                    if answers:
+                        info.update(answers)
+                    else:
+                        sys.exit(0)
+                else:
+                    sys.exit(0)
         if 'docker' in selections:
-            print('setting up docker...')
-            # TODO
+            commands = [
+                # TODO put in real commands
+                (['ping', '-c 4', 'python.org'], 'setting up Docker...'),
+            ]
+            for command in commands:
+                if self.execute_command(command[0], command[1]) != 0:
+                    sys.exit(1)
+        else:
+            docker_questions = [
+                {
+                    'type': 'input',
+                    'name': 'docker_network',
+                    'default': self.find_docker_network,
+                    'validate': DockerNetworkValidator,
+                    'message': 'What is the name of the Docker OVS Network?',
+                },
+            ]
+            answers = prompt(docker_questions, style=custom_style_2)
+            if answers:
+                info.update(answers)
+            else:
+                sys.exit(0)
         if 'kvm' in selections:
             print('kvm')
             # TODO
+        else:
+            kvm_questions = [
+                {
+                    'type': 'input',
+                    'name': 'kvm_image',
+                    'validate': KVMImageValidator,
+                    'message': 'What is the path to the KVM image you wish to use?',
+                },
+            ]
+            answers = prompt(kvm_questions, style=custom_style_2)
+            if answers:
+                info.update(answers)
+            else:
+                sys.exit(0)
         if 'ovs' in selections:
             print('ovs')
             # TODO
@@ -161,7 +213,7 @@ class Portunus():
         }
         if 'intro' in answers:
             answers = answers['intro']
-            actions = {}
+            actions = {'start': [], 'cleanup': [], 'setup': [], 'install': []}
             for answer in answers:
                 action, selection = answer.lower().split()
                 if action not in actions:
@@ -169,7 +221,8 @@ class Portunus():
                 actions[action].append(selection)
             for action in actions:
                 info_dict.update(action_dict[action](actions[action]))
-        print(info_dict)
+            print(info_dict)
+
         # TODO use info_dict to perform necessary actions
 
         return
