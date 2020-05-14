@@ -20,18 +20,20 @@ class Portunus():
 
     @staticmethod
     def start(answer):
-        return
+        # TODO
+        return {}
 
     @staticmethod
     def cleanup(answer):
-        return
+        # TODO
+        return {}
 
     @staticmethod
     def setup(answer):
-        faucet_ip = None
-        faucet_port = None
+        info = {}
         if 'faucet' in answer:
-            print('faucet')
+            print('setting up faucet...')
+            # TODO
         else:
             questions = [
                 {
@@ -44,7 +46,7 @@ class Portunus():
                     'type': 'input',
                     'name': 'faucet_port',
                     'default': '6653',
-                    'message': 'What port Faucet is running on?',
+                    'message': 'What port is Faucet running on?',
                     'validate': NumberValidator,
                     'filter': lambda val: int(val)
                 },
@@ -56,19 +58,43 @@ class Portunus():
                 },
             ]
             answers = prompt(questions, style=custom_style_2)
-            pprint(answers)
+            info.update(answers)
+            if answers['gauge']:
+                questions = [
+                    {
+                        'type': 'input',
+                        'name': 'gauge_ip',
+                        'default': answers['faucet_ip'],
+                        'validate': IPValidator,
+                        'message': 'What is the IP of Gauge?',
+                    },
+                    {
+                        'type': 'input',
+                        'name': 'gauge_port',
+                        'default': '6654',
+                        'message': 'What port is Gauge running on?',
+                        'validate': NumberValidator,
+                        'filter': lambda val: int(val)
+                    },
+                ]
+                answers = prompt(questions, style=custom_style_2)
+                info.update(answers)
         if 'docker' in answer:
             print('docker')
+            # TODO
         if 'kvm' in answer:
             print('kvm')
+            # TODO
         if 'ovs' in answer:
             print('ovs')
-        return
+            # TODO
+
+        return info
 
     @staticmethod
     def install(answer):
         print('Installing is not implemented yet, please go install the dependencies yourself at this time.')
-        return
+        return {}
 
     def main(self):
         question = [
@@ -98,18 +124,21 @@ class Portunus():
         ]
 
         answers = prompt(question, style=custom_style_2)
+        info_dict = {}
         if 'intro' in answers:
             answers = answers['intro']
             for answer in answers:
                 action, thing = answer.lower().split()
 
                 if action == 'start':
-                    self.start(thing)
+                    info_dict.update(self.start(thing))
                 elif action == 'cleanup':
-                    self.cleanup(thing)
+                    info_dict.update(self.cleanup(thing))
                 elif action == 'setup':
-                    self.setup(thing)
+                    info_dict.update(self.setup(thing))
                 elif action == 'install':
-                    self.install(thing)
+                    info_dict.update(self.install(thing))
+        print(info_dict)
+        # TODO use info_dict to perform necessary actions
 
         return
