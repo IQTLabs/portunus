@@ -1,6 +1,8 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import subprocess
+import sys
 from pprint import pprint
 
 from examples import custom_style_2
@@ -19,23 +21,49 @@ class Portunus():
         self.main()
 
     @staticmethod
-    def start(answer):
+    def execute_command(command, message):
+        print(message)
+        try:
+            process = subprocess.Popen(command,
+                                       stdout=subprocess.PIPE,
+                                       universal_newlines=True)
+        except FileNotFoundError:
+            print(f'Command "{" ".join(command)}" not found!')
+            return 1
+
+        return_code = None
+        while True:
+            output = process.stdout.readline()
+            print(output.strip())
+            return_code = process.poll()
+            if return_code is not None:
+                for output in process.stdout.readlines():
+                    print(output.strip())
+                break
+        return return_code
+
+    @staticmethod
+    def start_info(selections):
         # TODO
         return {}
 
     @staticmethod
-    def cleanup(answer):
+    def cleanup_info(selections):
         # TODO
         return {}
 
-    @staticmethod
-    def setup(answer):
+    def setup_info(self, selections):
         info = {}
-        if 'faucet' in answer:
-            print('setting up faucet...')
-            # TODO
+        if 'faucet' in selections:
+            commands = [
+                # TODO put in real commands
+                (['ping', '-c 4', 'python.org'], 'setting up Faucet...'),
+            ]
+            for command in commands:
+                if self.execute_command(command[0], command[1]) != 0:
+                    sys.exit(1)
         else:
-            questions = [
+            faucet_questions = [
                 {
                     'type': 'input',
                     'name': 'faucet_ip',
@@ -54,13 +82,13 @@ class Portunus():
                     'type': 'confirm',
                     'name': 'gauge',
                     'default': True,
-                    'message': 'Is Guage being used?',
+                    'message': 'Is Gauge being used?',
                 },
             ]
-            answers = prompt(questions, style=custom_style_2)
+            answers = prompt(faucet_questions, style=custom_style_2)
             info.update(answers)
-            if answers['gauge']:
-                questions = [
+            if 'gauge' in answers and answers['gauge']:
+                gauge_questions = [
                     {
                         'type': 'input',
                         'name': 'gauge_ip',
@@ -77,22 +105,22 @@ class Portunus():
                         'filter': lambda val: int(val)
                     },
                 ]
-                answers = prompt(questions, style=custom_style_2)
+                answers = prompt(gauge_questions, style=custom_style_2)
                 info.update(answers)
-        if 'docker' in answer:
-            print('docker')
+        if 'docker' in selections:
+            print('setting up docker...')
             # TODO
-        if 'kvm' in answer:
+        if 'kvm' in selections:
             print('kvm')
             # TODO
-        if 'ovs' in answer:
+        if 'ovs' in selections:
             print('ovs')
             # TODO
 
         return info
 
     @staticmethod
-    def install(answer):
+    def install_info(selections):
         print('Installing is not implemented yet, please go install the dependencies yourself at this time.')
         return {}
 
@@ -125,19 +153,22 @@ class Portunus():
 
         answers = prompt(question, style=custom_style_2)
         info_dict = {}
+        action_dict = {
+            'start': self.start_info,
+            'cleanup': self.cleanup_info,
+            'setup': self.setup_info,
+            'install': self.install_info
+        }
         if 'intro' in answers:
             answers = answers['intro']
+            actions = {}
             for answer in answers:
-                action, thing = answer.lower().split()
-
-                if action == 'start':
-                    info_dict.update(self.start(thing))
-                elif action == 'cleanup':
-                    info_dict.update(self.cleanup(thing))
-                elif action == 'setup':
-                    info_dict.update(self.setup(thing))
-                elif action == 'install':
-                    info_dict.update(self.install(thing))
+                action, selection = answer.lower().split()
+                if action not in actions:
+                    actions[action] = []
+                actions[action].append(selection)
+            for action in actions:
+                info_dict.update(action_dict[action](actions[action]))
         print(info_dict)
         # TODO use info_dict to perform necessary actions
 
