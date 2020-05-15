@@ -1,6 +1,7 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import os
 import subprocess
 import sys
 from pprint import pprint
@@ -123,8 +124,8 @@ class Portunus():
                         info.update(answers)
                     else:
                         sys.exit(0)
-                else:
-                    sys.exit(0)
+            else:
+                sys.exit(0)
         if 'docker' in selections:
             commands = [
                 # TODO put in real commands
@@ -148,6 +149,7 @@ class Portunus():
                 info.update(answers)
             else:
                 sys.exit(0)
+        # TODO check if 'start vms' was chosen, otherwise ignore
         if 'kvm' in selections:
             print('kvm')
             # TODO
@@ -166,8 +168,18 @@ class Portunus():
             else:
                 sys.exit(0)
         if 'ovs' in selections:
-            print('ovs')
+            # TODO put in a real path
+            if self.execute_command(['git', 'clone', 'https://github.com/cglewis/dovesnap'], 'cloning dovesnap...') != 0:
+                sys.exit(1)
+            wd = os.getcwd()
+            os.chdir('dovesnap')
+            if self.execute_command(['docker-compose', 'up', '-d', '--build'], 'building dovesnap...') != 0:
+                os.chdir(wd)
+                sys.exit(1)
+            os.chdir(wd)
+        else:
             # TODO
+            print('already have ovs setup')
 
         return info
 
@@ -213,7 +225,7 @@ class Portunus():
         }
         if 'intro' in answers:
             answers = answers['intro']
-            actions = {'start': [], 'cleanup': [], 'setup': [], 'install': []}
+            actions = {'start': [], 'cleanup': [], 'setup': []}
             for answer in answers:
                 action, selection = answer.lower().split()
                 if action not in actions:
