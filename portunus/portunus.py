@@ -217,6 +217,7 @@ class Portunus():
 
         answers = prompt(question, style=custom_style_2)
         info_dict = {}
+        actions = {}
         action_dict = {
             'start': self.start_info,
             'cleanup': self.cleanup_info,
@@ -230,8 +231,14 @@ class Portunus():
                 start_types.append('containers')
             if 'Start VMs' in answers:
                 start_types.append('vms')
-            # note install isn't included because it isn't implemented yet
-            actions = {'start': [], 'cleanup': [], 'setup': []}
+
+            # if something is being started, ensure dependencies are good to go
+            if start_types:
+                # note install isn't included because it isn't implemented yet
+                actions['cleanup'] = []
+                actions['start'] = []
+                actions['setup'] = []
+
             for answer in answers:
                 action, selection = answer.lower().split()
                 if action not in actions:
