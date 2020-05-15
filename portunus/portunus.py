@@ -56,16 +56,16 @@ class Portunus():
             return ''
 
     @staticmethod
-    def start_info(selections):
+    def start_info(selections, start_types):
         # TODO
         return {}
 
     @staticmethod
-    def cleanup_info(selections):
+    def cleanup_info(selections, start_types):
         # TODO
         return {}
 
-    def setup_info(self, selections):
+    def setup_info(self, selections, start_types):
         info = {}
         if 'faucet' in selections:
             commands = [
@@ -134,7 +134,7 @@ class Portunus():
             for command in commands:
                 if self.execute_command(command[0], command[1]) != 0:
                     sys.exit(1)
-        else:
+        elif 'containers' in start_types:
             docker_questions = [
                 {
                     'type': 'input',
@@ -149,11 +149,11 @@ class Portunus():
                 info.update(answers)
             else:
                 sys.exit(0)
-        # TODO check if 'start vms' was chosen, otherwise ignore
+
         if 'kvm' in selections:
             print('kvm')
             # TODO
-        else:
+        elif 'vms' in start_types:
             kvm_questions = [
                 {
                     'type': 'input',
@@ -184,7 +184,7 @@ class Portunus():
         return info
 
     @staticmethod
-    def install_info(selections):
+    def install_info(selections, start_types):
         print('Installing is not implemented yet, please go install the dependencies yourself at this time.')
         return {}
 
@@ -225,6 +225,12 @@ class Portunus():
         }
         if 'intro' in answers:
             answers = answers['intro']
+            start_types = []
+            if 'Start Containers' in answers:
+                start_types.append('containers')
+            if 'Start VMs' in answers:
+                start_types.append('vms')
+            # note install isn't included because it isn't implemented yet
             actions = {'start': [], 'cleanup': [], 'setup': []}
             for answer in answers:
                 action, selection = answer.lower().split()
@@ -232,7 +238,8 @@ class Portunus():
                     actions[action] = []
                 actions[action].append(selection)
             for action in actions:
-                info_dict.update(action_dict[action](actions[action]))
+                info_dict.update(action_dict[action](
+                    actions[action], start_types))
             print(info_dict)
 
         # TODO use info_dict to perform necessary actions
