@@ -25,8 +25,17 @@ class Portunus():
         self.main()
 
     @staticmethod
-    def execute_command(command, message):
+    def execute_command(command, message, change_dir=None):
         print(message)
+        wd = None
+        if change_dir:
+            try:
+                wd = os.getcwd()
+                os.chdir(change_dir)
+            except Exception as e:
+                print(
+                    f'Unable to change to directory {change_dir} because {e}')
+                return 1
         try:
             process = subprocess.Popen(command,
                                        stdout=subprocess.PIPE,
@@ -44,6 +53,13 @@ class Portunus():
                 for output in process.stdout.readlines():
                     print(output.strip())
                 break
+
+        if change_dir:
+            try:
+                os.chdir(wd)
+            except Exception as e:
+                print(f'Unable to change to directory {wd} because {e}')
+                return 1
         return return_code
 
     @staticmethod
@@ -134,7 +150,7 @@ class Portunus():
             for command in commands:
                 if self.execute_command(command[0], command[1]) != 0:
                     sys.exit(1)
-        elif 'containers' in start_types:
+        elif 'containers' in start_types and 'ovs' not in selections:
             docker_questions = [
                 {
                     'type': 'input',
@@ -167,16 +183,82 @@ class Portunus():
                 info.update(answers)
             else:
                 sys.exit(0)
+            commands = [
+                (['sudo', 'modprobe', 'kvm'], 'enabling kvm...'),
+                (['sudo', 'modprobe', '8021q'], 'enabling 802.1q...'),
+            ]
+            for command in commands:
+                if self.execute_command(command[0], command[1]) != 0:
+                    sys.exit(1)
         if 'ovs' in selections:
-            # TODO put in a real path
-            if self.execute_command(['git', 'clone', 'https://github.com/cglewis/dovesnap'], 'cloning dovesnap...') != 0:
-                sys.exit(1)
-            wd = os.getcwd()
-            os.chdir('dovesnap')
-            if self.execute_command(['docker-compose', 'up', '-d', '--build'], 'building dovesnap...') != 0:
-                os.chdir(wd)
-                sys.exit(1)
-            os.chdir(wd)
+            ovs_questions = [
+                {
+                    'type': 'input',
+                    'name': 'dovesnap_path',
+                    'default': '/tmp',
+                    'message': 'What path would you like to install dovesnap in?',
+                },
+                {
+                    'type': 'input',
+                    'name': 'dovesnap_network',
+                    'default': 'dovesnap',
+                    'message': 'What name would you like the network to be called?',
+                },
+                {
+                    'type': 'input',
+                    'name': 'dovesnap_gateway',
+                    'default': '192.168.10.254',
+                    'message': 'What is the gateway for this network?',
+                },
+                {
+                    'type': 'input',
+                    'name': 'dovesnap_subnet',
+                    'default': '192.168.10.0/24',
+                    'message': 'What is the subnet for this network?',
+                },
+                {
+                    'type': 'input',
+                    'name': 'dovesnap_range',
+                    'default': '192.168.10.10/24',
+                    'message': 'What is the IP range for this network?',
+                },
+                {
+                    'type': 'input',
+                    'name': 'dovesnap_nic',
+                    'default': 'eno1',
+                    'message': 'Do you have a NIC to attach to this network?',
+                },
+            ]
+            answers = prompt(ovs_questions, style=custom_style_2)
+            if answers:
+                info.update(answers)
+            else:
+                sys.exit(0)
+            commands = [
+                (['sudo', 'modprobe', 'openvswitch'], 'enabling openvswitch...'),
+                (['sudo', 'modprobe', '8021q'], 'enabling 802.1q...'),
+                # move this to cleanup
+                (['sudo', 'rm', '-rf', os.path.join(answers['dovesnap_path'],
+                                                    'dovesnap')], 'cleaning up dovesnap...'),
+                # TODO put in a real path
+                (['git', 'clone', 'https://github.com/cglewis/dovesnap'],
+                 'cloning dovesnap...', answers['dovesnap_path']),
+                (['docker-compose', 'up', '-d', '--build'], 'building dovesnap...',
+                 os.path.join(answers['dovesnap_path'], 'dovesnap')),
+                # TODO make arguments for these options
+                (['docker', 'network', 'create', '--gateway', answers['dovesnap_gateway'], '--subnet', answers['dovesnap_subnet'],
+                  '--ip-range', answers['dovesnap_range'], '-d', 'ovs', answers['dovesnap_network']], 'creating network...'),
+                (['docker', 'exec', '-it', 'dovesnap_ovs_1', '/scripts/add_port.sh',
+                  answers['dovesnap_nic']], 'adding network interface...'),
+                (['docker', 'exec', '-it', 'dovesnap_ovs_1', '/scripts/add_controller.sh', 'tcp:'+info['faucet_ip']+':' + \
+                  str(info['faucet_port']), 'tcp:'+info['gauge_ip']+':'+str(info['gauge_port'])], 'adding controller...'),
+            ]
+            for command in commands:
+                change_dir = None
+                if len(command) == 3:
+                    change_dir = command[2]
+                if self.execute_command(command[0], command[1], change_dir=change_dir) != 0:
+                    sys.exit(1)
         else:
             # TODO
             print('already have ovs setup')
