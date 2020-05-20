@@ -99,12 +99,6 @@ class Portunus():
         print(f'Started {name}')
 
     def get_network_info(self, val):
-        def network_mode_message(answers):
-            return 'Do you want network '+answers['network_name_'+str(val)]+' to use NAT?'
-
-        def network_options_message(answers):
-            return f'What options do you want specify for network {answers["network_name_"+str(val)]}?'
-        answers = None
         network_questions = [
             {
                 'type': 'confirm',
@@ -138,7 +132,7 @@ class Portunus():
                 'type': 'checkbox',
                 'name': 'network_options',
                 'when': lambda answers: not answers['network_exist'],
-                'message': f'What options do you want specify for the {self.p.ordinal(val)} network?',
+                'message': f'What options do you want to specify for the {self.p.ordinal(val)} network?',
                 'choices': [
                     {'name': 'Specify Subnet', 'checked': True},
                     {'name': 'Specify Gateway'},
