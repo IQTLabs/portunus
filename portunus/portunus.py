@@ -84,6 +84,17 @@ class Portunus():
         else:
             return ''
 
+    @staticmethod
+    def start_container(name, image, network):
+        try:
+            client = docker.from_env()
+            container = client.containers.run(image=image, network=network,
+                                              name=name, remove=True,
+                                              detach=True)
+        except Exception as e:
+            print(f'Failed to start {name} because: {e}')
+        print(f'Started {name}')
+
     def get_network_info(self, val):
 
         self.p.ordinal(val)
@@ -256,7 +267,12 @@ class Portunus():
                     self.info.update(answers)
                 else:
                     sys.exit(0)
-                # TODO start containers
+
+                # start containers
+                for c_val in range(1, answers[f'num_containers_{val}']+1):
+                    self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
+                                         self.info[f'container_image_{val}'],
+                                         self.info[f'network_name_{val}'])
         else:
             sys.exit(0)
 
@@ -433,7 +449,7 @@ class Portunus():
                 'message': 'What do you want to do?',
                 'choices': [
                     Separator(' ---START--- '),
-                    {'name': 'Start Containers (recommended)',
+                    {'name': 'Start Containers',
                      'checked': True},
                     {'name': 'Start VMs'},
                     Separator(' ---CLEANUP--- '),
