@@ -202,6 +202,13 @@ class Portunus():
                         'default': 'eno1',
                         'message': f'What is the name of the NIC you want to attach to {self.info["network_name_"+str(val)]}?',
                     },
+                    {
+                        'type': 'input',
+                        'name': f'network_nic_port_{val}',
+                        'default': '1',
+                        'message': f'What OpenFlow port should OVS try to assign this NIC to? (not guaranteed)',
+                        'validate': PortValidator,
+                    },
                 )
             if network_questions:
                 answers = prompt(network_questions, style=custom_style_2)
@@ -223,6 +230,9 @@ class Portunus():
             if f'network_dpid_{val}' in answers:
                 create_network += ['-o',
                                    f'ovs.bridge.dpid={answers["network_dpid_"+str(val)]}']
+            if f'network_nic_{val}' in answers:
+                create_network += ['-o',
+                                   f'ovs.bridge.add_ports={answers["network_nic_"+str(val)]}/{answers["network_nic_port"+str(val)]}']
 
             controller = 'ovs.bridge.controller=tcp:' + \
                 self.info[f'faucet_ip_{val}']+':' + \
@@ -234,11 +244,6 @@ class Portunus():
             create_network += [
                 '-o', controller, self.info[f'network_name_{val}']]
             commands.append((create_network, 'creating network...'))
-
-            # TODO update to use option
-            if f'network_nic_{val}' in answers:
-                commands.append((['docker', 'exec', '-it', 'dovesnap_ovs_1', '/scripts/add_port.sh',
-                                  answers[f'network_nic_{val}']], 'adding network interface...'))
 
             for command in commands:
                 if self.execute_command(command[0], command[1]) != 0:
@@ -451,13 +456,15 @@ class Portunus():
                      'checked': True},
                     {'name': 'Start VMs'},
                     Separator(' ---CLEANUP--- '),
-                    {'name': 'Cleanup Containers'},
-                    {'name': 'Cleanup VMs'},
-                    {'name': 'Cleanup Portunus (Faucet, Monitoring, Poseidon, OVS, etc. if running)'},
+                    {'name': 'Cleanup Containers',
+                        'disabled': 'Not implemented yet'},
+                    {'name': 'Cleanup VMs', 'disabled': 'Not implemented yet'},
+                    {'name': 'Cleanup Portunus (Faucet, Monitoring, Poseidon, OVS, etc. if running)',
+                     'disabled': 'Not implemented yet'},
                     Separator(' ---SETUP--- '),
-                    {'name': 'Setup Faucet'},
-                    {'name': 'Setup Monitoring', 'disabled': 'Not implemented yet.'},
-                    {'name': 'Setup Poseidon', 'disabled': 'Not implemented yet.'},
+                    {'name': 'Setup Faucet', 'disabled': 'Not implemented yet'},
+                    {'name': 'Setup Monitoring', 'disabled': 'Not implemented yet'},
+                    {'name': 'Setup Poseidon', 'disabled': 'Not implemented yet'},
                     Separator(' ---INSTALL--- '),
                     {'name': 'Install Dependencies'},
                 ],
