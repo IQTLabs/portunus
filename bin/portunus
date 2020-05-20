@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from portunus.portunus import Portunus
+
+
+if __name__ == '__main__':
+    Portunus()
