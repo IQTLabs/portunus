@@ -18,6 +18,7 @@ from portunus.validators import DockerNetworkValidator
 from portunus.validators import IPValidator
 from portunus.validators import KVMImageValidator
 from portunus.validators import NumberValidator
+from portunus.validators import PortValidator
 
 
 class Portunus():
@@ -96,185 +97,183 @@ class Portunus():
         print(f'Started {name}')
 
     def get_network_info(self, val):
+        def network_mode_message(answers):
+            return 'Do you want network '+answers['network_name_'+str(val)]+' to use NAT?'
 
-        self.p.ordinal(val)
-        network_question = [
+        def network_options_message(answers):
+            return f'What options do you want specify for network {answers["network_name_"+str(val)]}?'
+        answers = None
+        network_questions = [
             {
                 'type': 'confirm',
                 'name': 'network_exist',
                 'default': False,
                 'message': f'Does the {self.p.ordinal(val)} network already exist?',
             },
+            {
+                'type': 'input',
+                'name': f'network_name_{val}',
+                'default': self.get_first_docker_network,
+                'validate': DockerNetworkValidator,
+                'when': lambda answers: answers['network_exist'],
+                'message': 'What is the name of the Docker OVS Network? ' + str(self.find_docker_networks()),
+            },
+            {
+                'type': 'input',
+                'name': f'network_name_{val}',
+                'default': f'portunus_{val}',
+                'when': lambda answers: not answers['network_exist'],
+                'message': f'What name would you like the {self.p.ordinal(val)} network to be called?',
+            },
+            {
+                'type': 'confirm',
+                'name': f'network_mode_{val}',
+                'default': 'True',
+                'when': lambda answers: not answers['network_exist'],
+                'message': f'Do you want the {self.p.ordinal(val)} network to use NAT?',
+            },
+            {
+                'type': 'checkbox',
+                'name': 'network_options',
+                'when': lambda answers: not answers['network_exist'],
+                'message': f'What options do you want specify for the {self.p.ordinal(val)} network?',
+                'choices': [
+                    {'name': 'Specify Subnet', 'checked': True},
+                    {'name': 'Specify Gateway'},
+                    {'name': 'Specify IP Range'},
+                    {'name': 'Specify Datapath ID'},
+                    {'name': 'Specify NIC to attach to the network (external connectivity if not using NAT)'},
+                ],
+            },
         ]
-        answers = prompt(network_question, style=custom_style_2)
+        answers = prompt(network_questions, style=custom_style_2)
         if answers:
             self.info.update(answers)
-            if 'network_exist' in answers and answers['network_exist']:
-                docker_network = [
-                    {
-                        'type': 'input',
-                        'name': f'network_name_{val}',
-                        'default': self.get_first_docker_network,
-                        'validate': DockerNetworkValidator,
-                        'message': 'What is the name of the Docker OVS Network? ' + str(self.find_docker_networks()),
-                    },
-                ]
-                answers = prompt(docker_network, style=custom_style_2)
-                if answers:
-                    self.info.update(answers)
-                else:
-                    sys.exit(0)
-            else:
-                network_details = [
-                    {
-                        'type': 'input',
-                        'name': f'network_name_{val}',
-                        'default': f'portunus_{val}',
-                        'message': f'What name would you like the {self.p.ordinal(val)} network to be called?',
-                    },
-                ]
-                answers = prompt(network_details, style=custom_style_2)
-                if answers:
-                    self.info.update(answers)
-                else:
-                    sys.exit(0)
-                network_options = [
-                    {
-                        'type': 'confirm',
-                        'name': f'network_mode_{val}',
-                        'default': 'True',
-                        'message': f'Do you want network {self.info["network_name_"+str(val)]} to use NAT?',
-                    },
-                    {
-                        'type': 'checkbox',
-                        'name': 'network_options',
-                        'message': f'What options do you want specify for network {self.info["network_name_"+str(val)]}?',
-                        'choices': [
-                            {'name': 'Specify Subnet', 'checked': True},
-                            {'name': 'Specify Gateway'},
-                            {'name': 'Specify IP Range'},
-                            {'name': 'Specify Datapath ID'},
-                            {'name': 'Specify NIC to attach to the network (external connectivity if not using NAT)'},
-                        ],
-                    },
-                ]
-                answers = prompt(network_options, style=custom_style_2)
-                if answers:
-                    self.info.update(answers)
-                else:
-                    sys.exit(0)
-                network_mode = 'nat' if self.info[f'network_mode_{val}'] else 'flat'
-                create_network = ['docker', 'network', 'create', '-d',
-                                  'ovs', '-o', f'ovs.bridge.mode={network_mode}']
-                network_questions = []
-                answers = answers['network_options']
-                if 'Specify Subnet' in answers:
-                    network_questions.append(
-                        {
-                            'type': 'input',
-                            'name': f'network_subnet_{val}',
-                            'default': '192.168.10.0/24',
-                            'message': f'What do you want to make the subnet be for {self.info["network_name_"+str(val)]}?',
-                        }
-                    )
-                if 'Specify Gateway' in answers:
-                    network_questions.append(
-                        {
-                            'type': 'input',
-                            'name': f'network_gateway_{val}',
-                            'default': '192.168.10.254',
-                            'message': f'What do you want to make the gateway be for {self.info["network_name_"+str(val)]}?',
-                        },
-                    )
-                if 'Specify IP Range' in answers:
-                    network_questions.append(
-                        {
-                            'type': 'input',
-                            'name': f'network_range_{val}',
-                            'default': '192.168.10.10/24',
-                            'message': f'What do you want to make the IP range be for {self.info["network_name_"+str(val)]}?',
-                        },
-                    )
-                if 'Specify Datapath ID' in answers:
-                    network_questions.append(
-                        {
-                            'type': 'input',
-                            'name': f'network_dpid_{val}',
-                            'default': '0x1',
-                            'message': f'What do you want to make the Datapath ID be for {self.info["network_name_"+str(val)]}?',
-                        },
-                    )
-                if 'Specify NIC to attach to the network (external connectivity if not using NAT)' in answers:
-                    network_questions.append(
-                        {
-                            'type': 'input',
-                            'name': f'network_nic_{val}',
-                            'default': 'eno1',
-                            'message': f'What is the name of the NIC you want to attach to {self.info["network_name_"+str(val)]}?',
-                        },
-                    )
-                if network_questions:
-                    answers = prompt(network_questions, style=custom_style_2)
-                    if answers:
-                        self.info.update(answers)
-                    else:
-                        sys.exit(0)
-
-                commands = []
-                if f'network_subnet_{val}' in answers:
-                    create_network += ['--subnet',
-                                       answers[f'network_subnet_{val}']]
-                if f'network_gateway_{val}' in answers:
-                    create_network += ['--gateway',
-                                       answers[f'network_gateway_{val}']]
-                if f'network_range_{val}' in answers:
-                    create_network += ['--ip-range',
-                                       answers[f'network_range_{val}']]
-                if f'network_dpid_{val}' in answers:
-                    create_network += ['-o',
-                                       f'ovs.bridge.dpid={answers["network_dpid_"+str(val)]}']
-                # TODO add gauge
-                create_network += [
-                    '-o', f'ovs.bridge.controller=tcp:{self.info["faucet_ip"]}:{self.info["faucet_port"]}', self.info[f'network_name_{val}']]
-                commands.append((create_network, 'creating network...'))
-                if f'network_nic_{val}' in answers:
-                    commands.append((['docker', 'exec', '-it', 'dovesnap_ovs_1', '/scripts/add_port.sh',
-                                      answers[f'network_nic_{val}']], 'adding network interface...'))
-
-                for command in commands:
-                    if self.execute_command(command[0], command[1]) != 0:
-                        sys.exit(1)
-                container_questions = [
-                    {
-                        'type': 'input',
-                        'name': f'num_containers_{val}',
-                        'default': '1',
-                        'message': f'How many containers do you want started on network {self.info["network_name_"+str(val)]}?',
-                        'validate': NumberValidator,
-                        'filter': lambda val: int(val)
-                    },
-                    {
-                        'type': 'input',
-                        'name': f'container_image_{val}',
-                        # TODO this default should be an image using ssh and can be run in the background
-                        'default': 'ubuntu:latest',
-                        'message': 'What image would you like to use for your containers?',
-                    },
-                    # TODO inject ssh key? / get it from github?
-                ]
-                answers = prompt(container_questions, style=custom_style_2)
-                if answers:
-                    self.info.update(answers)
-                else:
-                    sys.exit(0)
-
-                # start containers
-                for c_val in range(1, answers[f'num_containers_{val}']+1):
-                    self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
-                                         self.info[f'container_image_{val}'],
-                                         self.info[f'network_name_{val}'])
         else:
             sys.exit(0)
+        if not answers['network_exist']:
+            self.faucet_info(val)
+            network_mode = 'nat' if self.info[f'network_mode_{val}'] else 'flat'
+            create_network = ['docker', 'network', 'create', '-d',
+                              'ovs', '-o', f'ovs.bridge.mode={network_mode}']
+            network_questions = []
+            answers = answers['network_options']
+            if 'Specify Subnet' in answers:
+                network_questions.append(
+                    {
+                        'type': 'input',
+                        'name': f'network_subnet_{val}',
+                        'default': '192.168.10.0/24',
+                        'message': f'What do you want to make the subnet be for {self.info["network_name_"+str(val)]}?',
+                    }
+                )
+            if 'Specify Gateway' in answers:
+                network_questions.append(
+                    {
+                        'type': 'input',
+                        'name': f'network_gateway_{val}',
+                        'default': '192.168.10.254',
+                        'message': f'What do you want to make the gateway be for {self.info["network_name_"+str(val)]}?',
+                    },
+                )
+            if 'Specify IP Range' in answers:
+                network_questions.append(
+                    {
+                        'type': 'input',
+                        'name': f'network_range_{val}',
+                        'default': '192.168.10.10/24',
+                        'message': f'What do you want to make the IP range be for {self.info["network_name_"+str(val)]}?',
+                    },
+                )
+            if 'Specify Datapath ID' in answers:
+                network_questions.append(
+                    {
+                        'type': 'input',
+                        'name': f'network_dpid_{val}',
+                        'default': '0x1',
+                        'message': f'What do you want to make the Datapath ID be for {self.info["network_name_"+str(val)]}?',
+                    },
+                )
+            if 'Specify NIC to attach to the network (external connectivity if not using NAT)' in answers:
+                network_questions.append(
+                    {
+                        'type': 'input',
+                        'name': f'network_nic_{val}',
+                        'default': 'eno1',
+                        'message': f'What is the name of the NIC you want to attach to {self.info["network_name_"+str(val)]}?',
+                    },
+                )
+            if network_questions:
+                answers = prompt(network_questions, style=custom_style_2)
+                if answers:
+                    self.info.update(answers)
+                else:
+                    sys.exit(0)
+
+            commands = []
+            if f'network_subnet_{val}' in answers:
+                create_network += ['--subnet',
+                                   answers[f'network_subnet_{val}']]
+            if f'network_gateway_{val}' in answers:
+                create_network += ['--gateway',
+                                   answers[f'network_gateway_{val}']]
+            if f'network_range_{val}' in answers:
+                create_network += ['--ip-range',
+                                   answers[f'network_range_{val}']]
+            if f'network_dpid_{val}' in answers:
+                create_network += ['-o',
+                                   f'ovs.bridge.dpid={answers["network_dpid_"+str(val)]}']
+
+            controller = 'ovs.bridge.controller=tcp:' + \
+                self.info[f'faucet_ip_{val}']+':' + \
+                self.info[f'faucet_port_{val}']
+            if self.info[f'gauge_{val}']:
+                controller += ',tcp:' + \
+                    self.info[f'gauge_ip_{val}']+':' + \
+                    self.info[f'gauge_port_{val}']
+            create_network += [
+                '-o', controller, self.info[f'network_name_{val}']]
+            commands.append((create_network, 'creating network...'))
+
+            # TODO update to use option
+            if f'network_nic_{val}' in answers:
+                commands.append((['docker', 'exec', '-it', 'dovesnap_ovs_1', '/scripts/add_port.sh',
+                                  answers[f'network_nic_{val}']], 'adding network interface...'))
+
+            for command in commands:
+                if self.execute_command(command[0], command[1]) != 0:
+                    sys.exit(1)
+
+        container_questions = [
+            {
+                'type': 'input',
+                'name': f'num_containers_{val}',
+                'default': '1',
+                'message': f'How many containers do you want started on network {self.info["network_name_"+str(val)]}?',
+                'validate': NumberValidator,
+                'filter': lambda val: int(val)
+            },
+            {
+                'type': 'input',
+                'name': f'container_image_{val}',
+                # TODO this default should be an image using ssh and can be run in the background
+                'default': 'ubuntu:latest',
+                'when': lambda answers: answers[f'num_containers_{val}'] > 0,
+                'message': 'What image would you like to use for your containers?',
+            },
+            # TODO inject ssh key? / get it from github?
+        ]
+        answers = prompt(container_questions, style=custom_style_2)
+        if answers:
+            self.info.update(answers)
+        else:
+            sys.exit(0)
+
+        # start containers
+        for c_val in range(1, answers[f'num_containers_{val}']+1):
+            self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
+                                 self.info[f'container_image_{val}'],
+                                 self.info[f'network_name_{val}'])
 
     def start_info(self, selections):
         if 'containers' in selections:
@@ -326,6 +325,56 @@ class Portunus():
         # containers, vms, networks, ovs/dovesnap
         return
 
+    def faucet_info(self, val):
+        faucet_questions = [
+            {
+                'type': 'input',
+                'name': f'faucet_ip_{val}',
+                'validate': IPValidator,
+                'message': 'What is the IP of Faucet you\'d like to connect to '+self.info[f'network_name_{val}']+'?',
+            },
+            {
+                'type': 'input',
+                'name': f'faucet_port_{val}',
+                'default': '6653',
+                'message': 'What port is Faucet running on?',
+                'validate': PortValidator,
+            },
+            {
+                'type': 'confirm',
+                'name': f'gauge_{val}',
+                'default': True,
+                'message': 'Is Gauge being used for '+self.info[f'network_name_{val}']+'?',
+            },
+        ]
+        answers = prompt(faucet_questions, style=custom_style_2)
+        if answers:
+            self.info.update(answers)
+            if f'gauge_{val}' in answers and answers[f'gauge_{val}']:
+                gauge_questions = [
+                    {
+                        'type': 'input',
+                        'name': f'gauge_ip_{val}',
+                        'default': answers[f'faucet_ip_{val}'],
+                        'validate': IPValidator,
+                        'message': 'What is the IP of Gauge you\'d like to connect to '+self.info[f'network_name_{val}']+'?',
+                    },
+                    {
+                        'type': 'input',
+                        'name': f'gauge_port_{val}',
+                        'default': '6654',
+                        'message': 'What port is Gauge running on?',
+                        'validate': PortValidator,
+                    },
+                ]
+                answers = prompt(gauge_questions, style=custom_style_2)
+                if answers:
+                    self.info.update(answers)
+                else:
+                    sys.exit(0)
+        else:
+            sys.exit(0)
+
     def setup_info(self, selections):
         if 'faucet' in selections:
             commands = [
@@ -335,57 +384,6 @@ class Portunus():
             for command in commands:
                 if self.execute_command(command[0], command[1]) != 0:
                     sys.exit(1)
-        else:
-            faucet_questions = [
-                {
-                    'type': 'input',
-                    'name': 'faucet_ip',
-                    'validate': IPValidator,
-                    'message': 'What is the IP of Faucet?',
-                },
-                {
-                    'type': 'input',
-                    'name': 'faucet_port',
-                    'default': '6653',
-                    'message': 'What port is Faucet running on?',
-                    'validate': NumberValidator,
-                    'filter': lambda val: int(val)
-                },
-                {
-                    'type': 'confirm',
-                    'name': 'gauge',
-                    'default': True,
-                    'message': 'Is Gauge being used?',
-                },
-            ]
-            answers = prompt(faucet_questions, style=custom_style_2)
-            if answers:
-                self.info.update(answers)
-                if 'gauge' in answers and answers['gauge']:
-                    gauge_questions = [
-                        {
-                            'type': 'input',
-                            'name': 'gauge_ip',
-                            'default': answers['faucet_ip'],
-                            'validate': IPValidator,
-                            'message': 'What is the IP of Gauge?',
-                        },
-                        {
-                            'type': 'input',
-                            'name': 'gauge_port',
-                            'default': '6654',
-                            'message': 'What port is Gauge running on?',
-                            'validate': NumberValidator,
-                            'filter': lambda val: int(val)
-                        },
-                    ]
-                    answers = prompt(gauge_questions, style=custom_style_2)
-                    if answers:
-                        self.info.update(answers)
-                    else:
-                        sys.exit(0)
-            else:
-                sys.exit(0)
         if 'monitoring' in selections:
             commands = [
                 # TODO put in real commands

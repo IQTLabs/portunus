@@ -43,6 +43,16 @@ class NumberValidator(Validator):
             raise ValidationError(
                 message='Please enter a number',
                 cursor_position=len(document.text))  # Move cursor to end
+
+
+class PortValidator(Validator):
+    def validate(self, document):
+        try:
+            int(document.text)
+        except ValueError:
+            raise ValidationError(
+                message='Please enter a number',
+                cursor_position=len(document.text))  # Move cursor to end
         if int(document.text) < 1 or int(document.text) > 65535:
             raise ValidationError(
                 message='Please enter a number between 1-65535',
