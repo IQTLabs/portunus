@@ -10,13 +10,15 @@ docker
 docker-compose
 faucet
 git
+pip3
+python3
 ```
 
 
 # Quick Start
 
 ```
-pip install portunus
+pip3 install portunus
 portunus
 ```
 
