@@ -86,12 +86,14 @@ class Portunus():
             return ''
 
     @staticmethod
-    def start_container(name, image, network):
+    def start_container(name, image, network, command=None):
         try:
             client = docker.from_env()
             container = client.containers.run(image=image, network=network,
                                               name=name, remove=True,
                                               detach=True)
+            if command:
+                container.exec_run(command)
         except Exception as e:
             print(f'Failed to start {name} because: {e}')
         print(f'Started {name}')
@@ -261,12 +263,22 @@ class Portunus():
             {
                 'type': 'input',
                 'name': f'container_image_{val}',
-                # TODO this default should be an image using ssh and can be run in the background
-                'default': 'ubuntu:latest',
+                'default': 'cyberreboot/ssh_server:latest',
                 'when': lambda answers: answers[f'num_containers_{val}'] > 0,
                 'message': 'What image would you like to use for your containers?',
             },
-            # TODO inject ssh key? / get it from github?
+            {
+                'type': 'confirm',
+                'name': f'ssh_key_{val}',
+                'default': True,
+                'message': 'Would you like to add your SSH key from GitHub to the containers?',
+            },
+            {
+                'type': 'input',
+                'name': f'ssh_username_{val}',
+                'when': lambda answers: answers[f'ssh_key_{val}'],
+                'message': 'What is your GitHub username?',
+            },
         ]
         answers = prompt(container_questions, style=custom_style_2)
         if answers:
@@ -276,9 +288,14 @@ class Portunus():
 
         # start containers
         for c_val in range(1, answers[f'num_containers_{val}']+1):
+            command = None
+            if f'ssh_username_{val}' in self.info:
+                command = 'bash -c "curl https://github.com/' + \
+                    self.info[f'ssh_username_{val}'] + \
+                    '.keys >> ~/.ssh/authorized_keys"'
             self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
                                  self.info[f'container_image_{val}'],
-                                 self.info[f'network_name_{val}'])
+                                 self.info[f'network_name_{val}'], command=command)
 
     def start_info(self, selections):
         if 'containers' in selections:
