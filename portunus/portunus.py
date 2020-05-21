@@ -98,7 +98,7 @@ class Portunus():
             print(f'Failed to start {name} because: {e}')
         print(f'Started {name}')
 
-    def get_network_info(self, val):
+    def get_network_info(self, val, selections):
         network_questions = [
             {
                 'type': 'confirm',
@@ -245,62 +245,34 @@ class Portunus():
                 if self.execute_command(command[0], command[1]) != 0:
                     sys.exit(1)
 
-        container_questions = [
-            {
-                'type': 'input',
-                'name': f'num_containers_{val}',
-                'default': '1',
-                'message': f'How many containers do you want started on network {self.info["network_name_"+str(val)]}?',
-                'validate': NumberValidator,
-                'filter': lambda val: int(val)
-            },
-            {
-                'type': 'input',
-                'name': f'container_image_{val}',
-                'default': 'cyberreboot/ssh_server:latest',
-                'when': lambda answers: answers[f'num_containers_{val}'] > 0,
-                'message': 'What image would you like to use for your containers?',
-            },
-            {
-                'type': 'confirm',
-                'name': f'ssh_key_{val}',
-                'default': True,
-                'message': 'Would you like to add your SSH key from GitHub to the containers?',
-            },
-            {
-                'type': 'input',
-                'name': f'ssh_username_{val}',
-                'when': lambda answers: answers[f'ssh_key_{val}'],
-                'message': 'What is your GitHub username?',
-            },
-        ]
-        answers = prompt(container_questions, style=custom_style_2)
-        if answers:
-            self.info.update(answers)
-        else:
-            sys.exit(0)
-
-        # start containers
-        for c_val in range(1, answers[f'num_containers_{val}']+1):
-            command = None
-            if f'ssh_username_{val}' in self.info:
-                command = 'bash -c "curl https://github.com/' + \
-                    self.info[f'ssh_username_{val}'] + \
-                    '.keys >> ~/.ssh/authorized_keys"'
-            self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
-                                 self.info[f'container_image_{val}'],
-                                 self.info[f'network_name_{val}'], command=command)
-
-    def start_info(self, selections):
         if 'containers' in selections:
             container_questions = [
                 {
                     'type': 'input',
-                    'name': 'num_networks',
+                    'name': f'num_containers_{val}',
                     'default': '1',
-                    'message': 'How many different networks do you want?',
+                    'message': f'How many containers do you want started on network {self.info["network_name_"+str(val)]}?',
                     'validate': NumberValidator,
                     'filter': lambda val: int(val)
+                },
+                {
+                    'type': 'input',
+                    'name': f'container_image_{val}',
+                    'default': 'cyberreboot/ssh_server:latest',
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0,
+                    'message': 'What image would you like to use for your containers?',
+                },
+                {
+                    'type': 'confirm',
+                    'name': f'ssh_key_{val}',
+                    'default': True,
+                    'message': 'Would you like to add your SSH key from GitHub to the containers?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'ssh_username_{val}',
+                    'when': lambda answers: answers[f'ssh_key_{val}'],
+                    'message': 'What is your GitHub username?',
                 },
             ]
             answers = prompt(container_questions, style=custom_style_2)
@@ -308,13 +280,27 @@ class Portunus():
                 self.info.update(answers)
             else:
                 sys.exit(0)
-            # get additional info for each network
-            for i in range(1, answers['num_networks']+1):
-                network = self.get_network_info(i)
 
+            # start containers
+            for c_val in range(1, answers[f'num_containers_{val}']+1):
+                command = None
+                if f'ssh_username_{val}' in self.info:
+                    command = 'bash -c "curl https://github.com/' + \
+                        self.info[f'ssh_username_{val}'] + \
+                        '.keys >> ~/.ssh/authorized_keys"'
+                self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
+                                     self.info[f'container_image_{val}'],
+                                     self.info[f'network_name_{val}'], command=command)
         if 'vms' in selections:
-            # TODO ovs bridge name?
             kvm_questions = [
+                {
+                    'type': 'input',
+                    'name': f'num_vms_{val}',
+                    'default': '1',
+                    'message': f'How many VMs do you want started on network {self.info["network_name_"+str(val)]}?',
+                    'validate': NumberValidator,
+                    'filter': lambda val: int(val)
+                },
                 {
                     'type': 'input',
                     'name': 'kvm_image',
@@ -327,6 +313,7 @@ class Portunus():
                 self.info.update(answers)
             else:
                 sys.exit(0)
+            # TODO generate script/downscript with ovs bridge name
             commands = [
                 (['sudo', 'modprobe', 'kvm'], 'enabling kvm...'),
                 (['sudo', 'modprobe', '8021q'], 'enabling 802.1q...'),
@@ -335,10 +322,85 @@ class Portunus():
                 if self.execute_command(command[0], command[1]) != 0:
                     sys.exit(1)
 
-    @staticmethod
-    def cleanup_info(selections):
-        # TODO
-        # containers, vms, networks, ovs/dovesnap
+    def start_info(self, selections):
+        start_questions = [
+            {
+                'type': 'input',
+                'name': 'num_networks',
+                'default': '1',
+                'message': 'How many different networks do you want?',
+                'validate': NumberValidator,
+                'filter': lambda val: int(val)
+            },
+        ]
+        answers = prompt(start_questions, style=custom_style_2)
+        if answers:
+            self.info.update(answers)
+        else:
+            sys.exit(0)
+        # get additional info for each network
+        for i in range(1, answers['num_networks']+1):
+            network = self.get_network_info(i, selections)
+
+    def cleanup_info(self, selections):
+        client = docker.from_env()
+        networks = client.networks.list(filters={'driver': 'ovs'})
+        if 'containers' in selections:
+            container_choices = []
+            for network in networks:
+                containers = client.containers.list(
+                    filters={'network': network.name})
+                for container in containers:
+                    container_choices.append(
+                        {'name': f'{container.name} ({network.name})'})
+            question = [
+                {
+                    'type': 'checkbox',
+                    'name': 'cleanup_containers',
+                    'message': 'Which containers would you like to remove?',
+                    'choices': container_choices,
+                },
+            ]
+
+            answers = prompt(question, style=custom_style_2)
+            if 'cleanup_containers' in answers:
+                answers = answers['cleanup_containers']
+                for answer in answers:
+                    container_name = answer.split()[0]
+                    c = client.containers.get(container_name)
+                    c.remove(force=True)
+        if 'networks' in selections:
+            network_choices = []
+            network_containers = {}
+            for network in networks:
+                network_containers[network.name] = []
+                containers = client.containers.list(
+                    filters={'network': network.name})
+                for container in containers:
+                    network_containers[network.name].append(container.name)
+                # TODO get VMs
+                network_choices.append(
+                    {'name': f'{network.name} ({len(containers)} {self.p.plural("container", len(containers))})'})
+            question = [
+                {
+                    'type': 'checkbox',
+                    'name': 'cleanup_networks',
+                    'message': 'Which networks (and their containers/VMs) would you like to remove?',
+                    'choices': network_choices,
+                },
+            ]
+
+            answers = prompt(question, style=custom_style_2)
+            if 'cleanup_networks' in answers:
+                answers = answers['cleanup_networks']
+                for answer in answers:
+                    network_name = answer.split()[0]
+                    for container_name in network_containers[network_name]:
+                        c = client.containers.get(container_name)
+                        c.remove(force=True)
+                    n = client.networks.get(network_name)
+                    n.remove()
+        # TODO vms, ovs/dovesnap
         return
 
     def faucet_info(self, val):
@@ -465,11 +527,11 @@ class Portunus():
                     Separator(' ---START--- '),
                     {'name': 'Start Containers',
                      'checked': True},
-                    {'name': 'Start VMs'},
+                    {'name': 'Start VMs', 'disabled': 'Not implemented yet'},
                     Separator(' ---CLEANUP--- '),
-                    {'name': 'Cleanup Containers',
-                        'disabled': 'Not implemented yet'},
+                    {'name': 'Cleanup Containers'},
                     {'name': 'Cleanup VMs', 'disabled': 'Not implemented yet'},
+                    {'name': 'Cleanup Networks'},
                     {'name': 'Cleanup Portunus (Faucet, Monitoring, Poseidon, OVS, etc. if running)',
                      'disabled': 'Not implemented yet'},
                     Separator(' ---SETUP--- '),
@@ -492,10 +554,6 @@ class Portunus():
         }
         if 'intro' in answers:
             answers = answers['intro']
-            if 'Start Containers' in answers or 'Start VMs' in answers:
-                # if something is being started, ensure things are setup
-                actions['setup'] = []
-
             for answer in answers:
                 action, selection = answer.lower().split()
                 if action not in actions:
@@ -507,4 +565,3 @@ class Portunus():
             action_order.sort()
             for action in action_order:
                 action_dict[action](actions[action])
-            print(self.info)
