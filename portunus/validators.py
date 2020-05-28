@@ -27,11 +27,15 @@ class IPValidator(Validator):
                 cursor_position=len(document.text))  # Move cursor to end
 
 
-class KVMImageValidator(Validator):
+class ImageValidator(Validator):
     def validate(self, document):
         if not os.path.isfile(document.text):
             raise ValidationError(
-                message='Please enter a path to a KVM image that exists',
+                message='Please enter a path to an image that exists',
+                cursor_position=len(document.text))  # Move cursor to end
+        if not document.text.endswith('.img') and not document.text.endswith('.qcow2'):
+            raise ValidationError(
+                message='Image must be either a .img or a .qcow2 image',
                 cursor_position=len(document.text))  # Move cursor to end
 
 
@@ -42,6 +46,10 @@ class NumberValidator(Validator):
         except ValueError:
             raise ValidationError(
                 message='Please enter a number',
+                cursor_position=len(document.text))  # Move cursor to end
+        if int(document.text) < 0:
+            raise ValidationError(
+                message='Please enter a number 0 or higher',
                 cursor_position=len(document.text))  # Move cursor to end
 
 

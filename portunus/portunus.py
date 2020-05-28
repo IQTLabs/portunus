@@ -15,8 +15,8 @@ from PyInquirer import style_from_dict
 from PyInquirer import Token
 
 from portunus.validators import DockerNetworkValidator
+from portunus.validators import ImageValidator
 from portunus.validators import IPValidator
-from portunus.validators import KVMImageValidator
 from portunus.validators import NumberValidator
 from portunus.validators import PortValidator
 
@@ -29,8 +29,10 @@ class Portunus():
         self.main()
 
     @staticmethod
-    def execute_command(command, message, change_dir=None, failok=False):
+    def execute_command(command, message, change_dir=None, failok=False, shell=False):
         print(message)
+        # TODO add logging, and make this a DEBUG statement
+        print(' '.join(command))
         wd = None
         return_code = None
         if change_dir:
@@ -44,7 +46,7 @@ class Portunus():
         try:
             process = subprocess.Popen(command,
                                        stdout=subprocess.PIPE,
-                                       universal_newlines=True)
+                                       universal_newlines=True, shell=shell)
         except Exception as e:
             if failok:
                 return_code = 0
@@ -126,7 +128,7 @@ class Portunus():
                 'name': f'network_mode_{val}',
                 'default': 'True',
                 'when': lambda answers: not answers['network_exist'],
-                'message': f'Do you want the {self.p.ordinal(val)} network to use NAT?',
+                'message': f'Do you want the {self.p.ordinal(val)} network to use NAT (only available for containers)?',
             },
             {
                 'type': 'checkbox',
@@ -197,14 +199,16 @@ class Portunus():
                         'name': f'network_nic_{val}',
                         'default': 'eno1',
                         'message': f'What is the name of the NIC you want to attach to {self.info["network_name_"+str(val)]}?',
-                    },
+                    }
+                )
+                network_questions.append(
                     {
                         'type': 'input',
                         'name': f'network_nic_port_{val}',
                         'default': '1',
                         'message': f'What OpenFlow port should OVS try to assign this NIC to? (not guaranteed)',
                         'validate': PortValidator,
-                    },
+                    }
                 )
             if network_questions:
                 answers = prompt(network_questions, style=custom_style_2)
@@ -228,7 +232,7 @@ class Portunus():
                                    f'ovs.bridge.dpid={answers["network_dpid_"+str(val)]}']
             if f'network_nic_{val}' in answers:
                 create_network += ['-o',
-                                   f'ovs.bridge.add_ports={answers["network_nic_"+str(val)]}/{answers["network_nic_port"+str(val)]}']
+                                   f'ovs.bridge.add_ports={answers["network_nic_"+str(val)]}/{answers["network_nic_port_"+str(val)]}']
 
             controller = 'ovs.bridge.controller=tcp:' + \
                 self.info[f'faucet_ip_{val}']+':' + \
@@ -264,14 +268,14 @@ class Portunus():
                 },
                 {
                     'type': 'confirm',
-                    'name': f'ssh_key_{val}',
+                    'name': f'container_ssh_key_{val}',
                     'default': True,
                     'message': 'Would you like to add your SSH key from GitHub to the containers?',
                 },
                 {
                     'type': 'input',
-                    'name': f'ssh_username_{val}',
-                    'when': lambda answers: answers[f'ssh_key_{val}'],
+                    'name': f'container_ssh_username_{val}',
+                    'when': lambda answers: answers[f'container_ssh_key_{val}'],
                     'message': 'What is your GitHub username?',
                 },
             ]
@@ -284,15 +288,22 @@ class Portunus():
             # start containers
             for c_val in range(1, answers[f'num_containers_{val}']+1):
                 command = None
-                if f'ssh_username_{val}' in self.info:
+                if f'container_ssh_username_{val}' in self.info:
                     command = 'bash -c "curl https://github.com/' + \
-                        self.info[f'ssh_username_{val}'] + \
+                        self.info[f'container_ssh_username_{val}'] + \
                         '.keys >> ~/.ssh/authorized_keys"'
                 self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
                                      self.info[f'container_image_{val}'],
                                      self.info[f'network_name_{val}'], command=command)
         if 'vms' in selections:
-            kvm_questions = [
+            commands = [
+                (['sudo', 'modprobe', 'kvm'], 'enabling KVM...'),
+                (['sudo', 'modprobe', '8021q'], 'enabling 802.1q...'),
+                (['kvm-ok'], 'checking KVM...'),
+                (['sudo', 'mkdir', '-p', '/var/lib/libvirt/images/base'],
+                 'ensuring base directory exists...'),
+            ]
+            vm_questions = [
                 {
                     'type': 'input',
                     'name': f'num_vms_{val}',
@@ -302,24 +313,192 @@ class Portunus():
                     'filter': lambda val: int(val)
                 },
                 {
+                    'type': 'confirm',
+                    'name': f'vm_image_{val}',
+                    'default': False,
+                    'message': f'Do you already have an image locally you want to use for network {self.info["network_name_"+str(val)]}?',
+                },
+                {
                     'type': 'input',
-                    'name': 'kvm_image',
-                    'validate': KVMImageValidator,
-                    'message': 'What is the path to the KVM image you wish to use?',
+                    'name': f'local_image_{val}',
+                    'validate': ImageValidator,
+                    'message': 'What is the path to the image you wish to use?',
+                    'when': lambda answers: answers[f'vm_image_{val}']
+                },
+                {
+                    'type': 'input',
+                    'name': f'remote_image_{val}',
+                    'message': 'What is the URL to the image you wish to use?',
+                    'when': lambda answers: not answers[f'vm_image_{val}']
+                },
+                {
+                    'type': 'input',
+                    'name': f'vm_basename_{val}',
+                    'message': f'What basename do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'vm_imagesize_{val}',
+                    # TODO needs validation
+                    'default': '5G',
+                    'message': f'What size disk do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'vm_ramsize_{val}',
+                    # TODO needs validation
+                    'default': '1024',
+                    'message': f'How much RAM (in MB) do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'vm_cpus_{val}',
+                    # TODO needs validation
+                    'default': '1',
+                    'message': f'How many CPUs do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'vm_os_{val}',
+                    # TODO needs validation
+                    'default': 'None',
+                    'message': f'What is the OS variant (i.e. ubuntu16.04) for your VM(s) for network {self.info["network_name_"+str(val)]} (Use None if you don\'t know)?',
+                },
+                {
+                    'type': 'confirm',
+                    'name': f'vm_ssh_key_{val}',
+                    'default': True,
+                    'message': 'Would you like to add your SSH key from GitHub to the VMs?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'vm_ssh_username_{val}',
+                    'when': lambda answers: answers[f'vm_ssh_key_{val}'],
+                    'message': 'What is your GitHub username?',
                 },
             ]
-            answers = prompt(kvm_questions, style=custom_style_2)
+            answers = prompt(vm_questions, style=custom_style_2)
             if answers:
                 self.info.update(answers)
             else:
                 sys.exit(0)
-            # TODO generate script/downscript with ovs bridge name
-            commands = [
-                (['sudo', 'modprobe', 'kvm'], 'enabling kvm...'),
-                (['sudo', 'modprobe', '8021q'], 'enabling 802.1q...'),
-            ]
+
+            qcow2 = ''
+            if f'vm_image_{val}' in answers and answers[f'vm_image_{val}']:
+                # copy existing image
+                qcow2 = os.path.basename(
+                    answers[f'local_image_{val}']).replace('.img', '.qcow2')
+                commands.append(
+                    (['sudo', 'cp', answers[f'local_image_{val}'], f'/var/lib/libvirt/images/base/{qcow2}'], 'copying image...'))
+            else:
+                # download image then move
+                commands.append(
+                    (['wget', answers[f'remote_image_{val}']], 'downloading image...'))
+                qcow2 = os.path.basename(
+                    answers[f'remote_image_{val}']).replace('.img', '.qcow2')
+                commands.append((['sudo', 'mv', os.path.basename(
+                    answers[f'remote_image_{val}']), f'/var/lib/libvirt/images/base/{qcow2}'], 'moving image...'))
+
+            for vm in range(1, answers[f'num_vms_{val}']+1):
+                vm_commands = [
+                    # create directory for vm
+                    (['sudo', 'mkdir', '-p', '/var/lib/libvirt/images/' + \
+                      answers[f'vm_basename_{val}']+f'-{vm}'], 'creating directory for new VM...'),
+                    # create vm image
+                    (['sudo', 'qemu-img', 'create', '-f', 'qcow2', '-F', 'qcow2', '-o',
+                      f'backing_file=/var/lib/libvirt/images/base/{qcow2}', '/var/lib/libvirt/images/'+answers[f'vm_basename_{val}']+f'-{vm}/'+answers[f'vm_basename_{val}']+f'-{vm}.qcow2'], 'creating directory for new VM...'),
+                    # resize image
+                    (['sudo', 'qemu-img', 'resize', '/var/lib/libvirt/images/' + \
+                      answers[f'vm_basename_{val}']+f'-{vm}/'+answers[f'vm_basename_{val}']+f'-{vm}.qcow2', answers[f'vm_imagesize_{val}']], 'resizing image...'),
+                    # create meta-data
+                    (['echo "local-hostname: ' + \
+                      answers[f'vm_basename_{val}']+f'-{vm}" > meta-data'], 'create meta-data...', True),
+                    # create user-data file
+                ]
+                commands += vm_commands
+
+                # create user-data
+                ssh_key = {'auth_key': ''}
+                if answers[f'vm_ssh_key_{val}']:
+                    pub_key = subprocess.check_output(
+                        'wget -qO- https://github.com/'+self.info[f'vm_ssh_username_{val}']+'.keys', shell=True)
+                    pub_key = pub_key.decode('utf-8').rstrip('\n')
+                    ssh_key['auth_key'] = f'ssh-authorized-keys:\n      - {pub_key}'
+                cloud_config = """#cloud-config
+
+users:
+  - name: ubuntu
+    %(auth_key)s
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    groups: sudo
+    shell: /bin/bash
+runcmd:
+  - echo "AllowUsers ubuntu" >> /etc/ssh/sshd_config
+  - restart ssh
+""" % ssh_key
+                with open('user-data', 'w') as f:
+                    f.write(cloud_config)
+
+                ovs_vsctl = subprocess.check_output(
+                    'which ovs-vsctl', shell=True)
+                ovs_vsctl = ovs_vsctl.decode('utf-8').rstrip('\n')
+                ovs_wrapper = """#!/bin/bash
+
+logger used openvswitch with tcp
+%s-orig --db=tcp:127.0.0.1:6640 $@
+""" % ovs_vsctl
+                with open('portunus-ovs-vsctl', 'w') as f:
+                    f.write(ovs_wrapper)
+                client = docker.from_env()
+                network = client.networks.get(self.info[f'network_name_{val}'])
+                bridge = 'ovsbr-'+network.id[:5]
+                os_variant = 'generic'
+                if answers[f'vm_os_{val}'] is not 'None':
+                    os_variant = answers[f'vm_os_{val}']
+                vm_commands = [
+                    # create iso
+                    (['sudo', 'genisoimage', '-output', '/var/lib/libvirt/images/' + \
+                      answers[f'vm_basename_{val}']+f'-{vm}/'+answers[f'vm_basename_{val}']+f'-{vm}-cidata.iso', '-volid', 'cidata', '-joliet', '-rock', 'user-data', 'meta-data'], 'create iso...'),
+                    # remove data files
+                    (['rm', 'meta-data'], 'removing meta-data...'),
+                    (['rm', 'user-data'], 'removing user-data...'),
+                    # hack that wraps ovs-vsctl due to libvirt hard-coding it
+                    (['chmod', '+x', 'portunus-ovs-vsctl'],
+                     'making ovs-vsctl wrapper executable...'),
+                    (['sudo', 'mv', ovs_vsctl, ovs_vsctl+'-orig'],
+                     'moving ovs-vsctl to ovs-vsctl-orig...'),
+                    (['sudo', 'mv', 'portunus-ovs-vsctl', ovs_vsctl],
+                     'moving wrapper to ovs-vsctl...'),
+                    # create vm
+                    (['virt-install',
+                      '--connect', 'qemu:///system',
+                      '--virt-type', 'kvm',
+                      '--name', answers[f'vm_basename_{val}']+f'-{vm}',
+                      '--memory', answers[f'vm_ramsize_{val}'],
+                      '--vcpus='+answers[f'vm_cpus_{val}'],
+                      '--os-variant', os_variant,
+                      '--disk', 'path=/var/lib/libvirt/images/' + \
+                      answers[f'vm_basename_{val}']+f'-{vm}/' + \
+                      answers[f'vm_basename_{val}'] + \
+                      f'-{vm}.qcow2,format=qcow2',
+                      '--disk', '/var/lib/libvirt/images/' + \
+                      answers[f'vm_basename_{val}']+f'-{vm}/' + \
+                      answers[f'vm_basename_{val}'] + \
+                      f'-{vm}-cidata.iso,device=cdrom',
+                      '--import',
+                      '--network', f'bridge={bridge},virtualport_type=openvswitch',
+                      '--noautoconsole'], 'create vm...'),
+                    # put ovs-vsctl back
+                    (['sudo', 'mv', ovs_vsctl+'-orig', ovs_vsctl],
+                     'moving ovs-vsctl-orig back to ovs-vsctl...'),
+                ]
+                commands += vm_commands
+
             for command in commands:
-                if self.execute_command(command[0], command[1]) != 0:
+                shell = False
+                if len(command) == 3:
+                    shell = command[2]
+                if self.execute_command(command[0], command[1], shell=shell) != 0:
                     sys.exit(1)
 
     def start_info(self, selections):
@@ -381,25 +560,26 @@ class Portunus():
                 # TODO get VMs
                 network_choices.append(
                     {'name': f'{network.name} ({len(containers)} {self.p.plural("container", len(containers))})'})
-            question = [
-                {
-                    'type': 'checkbox',
-                    'name': 'cleanup_networks',
-                    'message': 'Which networks (and their containers/VMs) would you like to remove?',
-                    'choices': network_choices,
-                },
-            ]
+            if networks:
+                question = [
+                    {
+                        'type': 'checkbox',
+                        'name': 'cleanup_networks',
+                        'message': 'Which networks (and their containers/VMs) would you like to remove?',
+                        'choices': network_choices,
+                    },
+                ]
 
-            answers = prompt(question, style=custom_style_2)
-            if 'cleanup_networks' in answers:
-                answers = answers['cleanup_networks']
-                for answer in answers:
-                    network_name = answer.split()[0]
-                    for container_name in network_containers[network_name]:
-                        c = client.containers.get(container_name)
-                        c.remove(force=True)
-                    n = client.networks.get(network_name)
-                    n.remove()
+                answers = prompt(question, style=custom_style_2)
+                if 'cleanup_networks' in answers:
+                    answers = answers['cleanup_networks']
+                    for answer in answers:
+                        network_name = answer.split()[0]
+                        for container_name in network_containers[network_name]:
+                            c = client.containers.get(container_name)
+                            c.remove(force=True)
+                        n = client.networks.get(network_name)
+                        n.remove()
         # TODO vms, ovs/dovesnap
         return
 
@@ -500,6 +680,11 @@ class Portunus():
             (['sudo', 'modprobe', 'openvswitch'],
              'enabling openvswitch...', '.', True),
             (['sudo', 'modprobe', '8021q'], 'enabling 802.1q...', '.', True),
+            # debian specific
+            (['sudo', 'apt-get', 'update'],
+             'updating package sources...', '.', True),
+            (['sudo', 'apt-get', 'install', '-y', 'qemu-kvm', 'libvirt-bin', 'qemu-utils',
+              'genisoimage', 'virtinst', 'wget'], 'installing packages for KVM...', '.', True),
             (['sudo', 'rm', '-rf', os.path.join(answers['dovesnap_path'],
                                                 'dovesnap')], 'cleaning up dovesnap...'),
             (['sudo', 'git', 'clone', 'https://github.com/cyberreboot/dovesnap'],
@@ -516,6 +701,8 @@ class Portunus():
                 failok = command[3]
             if self.execute_command(command[0], command[1], change_dir=change_dir, failok=failok) != 0:
                 sys.exit(1)
+        print('NOTE: For VMs, apparmor profiles will need to be modified for libvirt, the easiest (though less secure option is to set `security_driver = "none"` in `/etc/libvirt/qemu.conf`.')
+        print('NOTE: For VMs to connect to OVS bridges that are not local `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
 
     def main(self):
         question = [
@@ -527,7 +714,7 @@ class Portunus():
                     Separator(' ---START--- '),
                     {'name': 'Start Containers',
                      'checked': True},
-                    {'name': 'Start VMs', 'disabled': 'Not implemented yet'},
+                    {'name': 'Start VMs'},
                     Separator(' ---CLEANUP--- '),
                     {'name': 'Cleanup Containers'},
                     {'name': 'Cleanup VMs', 'disabled': 'Not implemented yet'},
