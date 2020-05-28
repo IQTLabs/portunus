@@ -439,7 +439,6 @@ runcmd:
                 with open('user-data', 'w') as f:
                     f.write(cloud_config)
 
-                # TODO if ovs-vsctl doesn't exist
                 ovs_vsctl = subprocess.check_output(
                     'which ovs-vsctl', shell=True)
                 ovs_vsctl = ovs_vsctl.decode('utf-8').rstrip('\n')
@@ -702,6 +701,7 @@ runcmd:
             if self.execute_command(command[0], command[1], change_dir=change_dir, failok=failok) != 0:
                 sys.exit(1)
         print('NOTE: For VMs, apparmor profiles will need to be modified for libvirt, the easiest (though less secure option is to set `security_driver = "none"` in `/etc/libvirt/qemu.conf`.')
+        print('NOTE: For starting VMs you will need Open vSwitch installed locally first.')
         print('NOTE: For VMs to connect to OVS bridges that are not local `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
 
     def main(self):
