@@ -32,7 +32,7 @@ class Portunus():
     def execute_command(command, message, change_dir=None, failok=False, shell=False):
         print(message)
         # TODO add logging, and make this a DEBUG statement
-        print(' '.join(command))
+        #print(' '.join(command))
         wd = None
         return_code = None
         if change_dir:
@@ -439,12 +439,12 @@ runcmd:
                 with open('user-data', 'w') as f:
                     f.write(cloud_config)
 
+                # TODO if ovs-vsctl doesn't exist
                 ovs_vsctl = subprocess.check_output(
                     'which ovs-vsctl', shell=True)
                 ovs_vsctl = ovs_vsctl.decode('utf-8').rstrip('\n')
                 ovs_wrapper = """#!/bin/bash
 
-logger used openvswitch with tcp
 %s-orig --db=tcp:127.0.0.1:6640 $@
 """ % ovs_vsctl
                 with open('portunus-ovs-vsctl', 'w') as f:
