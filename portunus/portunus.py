@@ -398,6 +398,9 @@ class Portunus():
                     answers[f'remote_image_{val}']).replace('.img', '.qcow2')
                 commands.append((['sudo', 'mv', os.path.basename(
                     answers[f'remote_image_{val}']), f'/var/lib/libvirt/images/base/{qcow2}'], 'moving image...'))
+            for command in commands:
+                if self.execute_command(command[0], command[1]) != 0:
+                    sys.exit(1)
 
             for vm in range(1, answers[f'num_vms_{val}']+1):
                 vm_commands = [
@@ -412,10 +415,9 @@ class Portunus():
                       answers[f'vm_basename_{val}']+f'-{vm}/'+answers[f'vm_basename_{val}']+f'-{vm}.qcow2', answers[f'vm_imagesize_{val}']], 'resizing image...'),
                     # create meta-data
                     (['echo "local-hostname: ' + \
-                      answers[f'vm_basename_{val}']+f'-{vm}" > meta-data'], 'create meta-data...', True),
+                      answers[f'vm_basename_{val}']+f'-{vm}" > meta-data-{vm}'], 'create meta-data...', True),
                     # create user-data file
                 ]
-                commands += vm_commands
 
                 # create user-data
                 ssh_key = {'auth_key': ''}
@@ -436,7 +438,7 @@ runcmd:
   - echo "AllowUsers ubuntu" >> /etc/ssh/sshd_config
   - restart ssh
 """ % ssh_key
-                with open('user-data', 'w') as f:
+                with open(f'user-data-{vm}', 'w') as f:
                     f.write(cloud_config)
 
                 ovs_vsctl = subprocess.check_output(
@@ -454,13 +456,13 @@ runcmd:
                 os_variant = 'generic'
                 if answers[f'vm_os_{val}'] is not 'None':
                     os_variant = answers[f'vm_os_{val}']
-                vm_commands = [
+                vm_commands += [
                     # create iso
                     (['sudo', 'genisoimage', '-output', '/var/lib/libvirt/images/' + \
-                      answers[f'vm_basename_{val}']+f'-{vm}/'+answers[f'vm_basename_{val}']+f'-{vm}-cidata.iso', '-volid', 'cidata', '-joliet', '-rock', 'user-data', 'meta-data'], 'create iso...'),
+                      answers[f'vm_basename_{val}']+f'-{vm}/'+answers[f'vm_basename_{val}']+f'-{vm}-cidata.iso', '-volid', 'cidata', '-joliet', '-rock', f'user-data-{vm}', f'meta-data-{vm}'], 'create iso...'),
                     # remove data files
-                    (['rm', 'meta-data'], 'removing meta-data...'),
-                    (['rm', 'user-data'], 'removing user-data...'),
+                    (['rm', f'meta-data-{vm}'], 'removing meta-data...'),
+                    (['rm', f'user-data-{vm}'], 'removing user-data...'),
                     # hack that wraps ovs-vsctl due to libvirt hard-coding it
                     (['chmod', '+x', 'portunus-ovs-vsctl'],
                      'making ovs-vsctl wrapper executable...'),
@@ -491,14 +493,13 @@ runcmd:
                     (['sudo', 'mv', ovs_vsctl+'-orig', ovs_vsctl],
                      'moving ovs-vsctl-orig back to ovs-vsctl...'),
                 ]
-                commands += vm_commands
 
-            for command in commands:
-                shell = False
-                if len(command) == 3:
-                    shell = command[2]
-                if self.execute_command(command[0], command[1], shell=shell) != 0:
-                    sys.exit(1)
+                for command in vm_commands:
+                    shell = False
+                    if len(command) == 3:
+                        shell = command[2]
+                    if self.execute_command(command[0], command[1], shell=shell) != 0:
+                        sys.exit(1)
 
     def start_info(self, selections):
         start_questions = [
@@ -592,6 +593,8 @@ runcmd:
                         for vm in vm_networks[network_name]:
                             os.system(f'virsh destroy {vm}')
                             os.system(f'virsh undefine {vm}')
+                            os.system(
+                                f'sudo rm -rf /var/lib/libvirt/images/{vm}')
                         for container_name in network_containers[network_name]:
                             c = client.containers.get(container_name)
                             c.remove(force=True)
