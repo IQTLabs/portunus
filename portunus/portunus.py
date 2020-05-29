@@ -547,18 +547,33 @@ runcmd:
                     container_name = answer.split()[0]
                     c = client.containers.get(container_name)
                     c.remove(force=True)
+        vm_networks = {}
         if 'networks' in selections:
             network_choices = []
             network_containers = {}
             for network in networks:
+                # get containers
                 network_containers[network.name] = []
                 containers = client.containers.list(
                     filters={'network': network.name})
                 for container in containers:
                     network_containers[network.name].append(container.name)
-                # TODO get VMs
+
+                # get VMs
+                bridge = 'ovsbr-'+network.id[:5]
+                vms = subprocess.check_output(
+                    'virsh list --all --name', shell=True).decode('utf-8').split('\n')
+                vm_networks[network.name] = []
+                for vm in vms:
+                    if vm:
+                        vm_net = subprocess.check_output(
+                            f'virsh domiflist {vm}', shell=True).decode('utf-8')
+                        if bridge in vm_net:
+                            vm_networks[network.name].append(vm)
+
+                # combine everything on the network
                 network_choices.append(
-                    {'name': f'{network.name} ({len(containers)} {self.p.plural("container", len(containers))})'})
+                    {'name': f'{network.name} [{bridge}] ({len(containers)} {self.p.plural("container", len(containers))}, {len(vm_networks[network.name])} {self.p.plural("vm", len(vm_networks[network.name]))})'})
             if networks:
                 question = [
                     {
@@ -574,6 +589,9 @@ runcmd:
                     answers = answers['cleanup_networks']
                     for answer in answers:
                         network_name = answer.split()[0]
+                        for vm in vm_networks[network_name]:
+                            os.system(f'virsh destroy {vm}')
+                            os.system(f'virsh undefine {vm}')
                         for container_name in network_containers[network_name]:
                             c = client.containers.get(container_name)
                             c.remove(force=True)
