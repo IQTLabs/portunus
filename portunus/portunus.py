@@ -532,22 +532,23 @@ runcmd:
                 for container in containers:
                     container_choices.append(
                         {'name': f'{container.name} ({network.name})'})
-            question = [
-                {
-                    'type': 'checkbox',
-                    'name': 'cleanup_containers',
-                    'message': 'Which containers would you like to remove?',
-                    'choices': container_choices,
-                },
-            ]
+            if container_choices:
+                question = [
+                    {
+                        'type': 'checkbox',
+                        'name': 'cleanup_containers',
+                        'message': 'Which containers would you like to remove?',
+                        'choices': container_choices,
+                    },
+                ]
 
-            answers = prompt(question, style=custom_style_2)
-            if 'cleanup_containers' in answers:
-                answers = answers['cleanup_containers']
-                for answer in answers:
-                    container_name = answer.split()[0]
-                    c = client.containers.get(container_name)
-                    c.remove(force=True)
+                answers = prompt(question, style=custom_style_2)
+                if 'cleanup_containers' in answers:
+                    answers = answers['cleanup_containers']
+                    for answer in answers:
+                        container_name = answer.split()[0]
+                        c = client.containers.get(container_name)
+                        c.remove(force=True)
         vm_networks = {}
         if 'networks' in selections:
             network_choices = []
@@ -600,7 +601,40 @@ runcmd:
                             c.remove(force=True)
                         n = client.networks.get(network_name)
                         n.remove()
-        # TODO vms, ovs/dovesnap
+        if 'vms' in selections:
+            vm_choices = []
+            for network in networks:
+                bridge = 'ovsbr-'+network.id[:5]
+                vms = subprocess.check_output(
+                    'virsh list --all --name', shell=True).decode('utf-8').split('\n')
+                for vm in vms:
+                    if vm:
+                        vm_net = subprocess.check_output(
+                            f'virsh domiflist {vm}', shell=True).decode('utf-8')
+                        if bridge in vm_net:
+                            vm_choices.append(
+                                {'name': f'{vm} ({network.name})'})
+            if vm_choices:
+                question = [
+                    {
+                        'type': 'checkbox',
+                        'name': 'cleanup_vms',
+                        'message': 'Which VMs would you like to remove?',
+                        'choices': vm_choices,
+                    },
+                ]
+
+                answers = prompt(question, style=custom_style_2)
+                if 'cleanup_vms' in answers:
+                    answers = answers['cleanup_vms']
+                    for answer in answers:
+                        vm = answer.split()[0]
+                        os.system(f'virsh destroy {vm}')
+                        os.system(f'virsh undefine {vm}')
+                        os.system(
+                            f'sudo rm -rf /var/lib/libvirt/images/{vm}')
+
+        # TODO ovs/dovesnap
         return
 
     def faucet_info(self, val):
@@ -738,7 +772,7 @@ runcmd:
                     {'name': 'Start VMs'},
                     Separator(' ---CLEANUP--- '),
                     {'name': 'Cleanup Containers'},
-                    {'name': 'Cleanup VMs', 'disabled': 'Not implemented yet'},
+                    {'name': 'Cleanup VMs'},
                     {'name': 'Cleanup Networks'},
                     {'name': 'Cleanup Portunus (Faucet, Monitoring, Poseidon, OVS, etc. if running)',
                      'disabled': 'Not implemented yet'},
