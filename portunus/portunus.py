@@ -737,7 +737,7 @@ runcmd:
             # debian specific
             (['sudo', 'apt-get', 'update'],
              'updating package sources...', '.', True),
-            (['sudo', 'apt-get', 'install', '-y', 'qemu-kvm', 'libvirt-bin', 'qemu-utils',
+            (['sudo', 'apt-get', 'install', '-y', 'qemu-kvm', 'qemu-utils',
               'genisoimage', 'virtinst', 'wget'], 'installing packages for KVM...', '.', True),
             (['sudo', 'rm', '-rf', os.path.join(answers['dovesnap_path'],
                                                 'dovesnap')], 'cleaning up dovesnap...'),
@@ -757,7 +757,7 @@ runcmd:
                 sys.exit(1)
         print('NOTE: For VMs, apparmor profiles will need to be modified for libvirt, the easiest (though less secure option is to set `security_driver = "none"` in `/etc/libvirt/qemu.conf`.')
         print('NOTE: For starting VMs you will need Open vSwitch installed locally first.')
-        print('NOTE: For VMs to connect to OVS bridges that are not local `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
+        print('NOTE: For VMs to connect to OVS bridges that are not local, `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
 
     def main(self):
         question = [
