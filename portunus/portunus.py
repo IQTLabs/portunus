@@ -413,10 +413,6 @@ class Portunus():
                     # resize image
                     (['sudo', 'qemu-img', 'resize', '/var/lib/libvirt/images/' + \
                       answers[f'vm_basename_{val}']+f'-{vm}/'+answers[f'vm_basename_{val}']+f'-{vm}.qcow2', answers[f'vm_imagesize_{val}']], 'resizing image...'),
-                    # create meta-data
-                    (['echo "local-hostname: ' + \
-                      answers[f'vm_basename_{val}']+f'-{vm}" > meta-data-{vm}'], 'create meta-data...', True),
-                    # create user-data file
                 ]
 
                 # create user-data
@@ -426,20 +422,25 @@ class Portunus():
                         'wget -qO- https://github.com/'+self.info[f'vm_ssh_username_{val}']+'.keys', shell=True)
                     pub_key = pub_key.decode('utf-8').rstrip('\n')
                     ssh_key['auth_key'] = f'ssh-authorized-keys:\n      - {pub_key}'
+                # TODO make better for non-ubuntu
                 cloud_config = """#cloud-config
 users:
-  - default
-  - name: portunus
+  - name: ubuntu
     %(auth_key)s
-    sudo: ALL=(ALL) NOPASSWD:ALL
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
     groups: sudo
     shell: /bin/bash
-runcmd:
-  - echo "AllowUsers portunus" >> /etc/ssh/sshd_config
-  - restart ssh
 """ % ssh_key
-                with open(f'user-data-{vm}', 'w') as f:
+                # create meta-data
+                # TODO fix value for each instance
+                metadata = 'local-hostname: ' + \
+                    answers[f'vm_basename_{val}']+f'-{vm}\n'
+                metadata += f'public-keys:\n  - {pub_key}'
+
+                with open(f'user-data', 'w') as f:
                     f.write(cloud_config)
+                with open(f'meta-data', 'w') as f:
+                    f.write(metadata)
 
                 ovs_vsctl = subprocess.check_output(
                     'which ovs-vsctl', shell=True)
@@ -459,10 +460,7 @@ runcmd:
                 vm_commands += [
                     # create iso
                     (['sudo', 'genisoimage', '-output', '/var/lib/libvirt/images/' + \
-                      answers[f'vm_basename_{val}']+f'-{vm}/'+answers[f'vm_basename_{val}']+f'-{vm}-cidata.iso', '-volid', 'cidata', '-joliet', '-rock', f'user-data-{vm}', f'meta-data-{vm}'], 'create iso...'),
-                    # remove data files
-                    (['rm', f'meta-data-{vm}'], 'removing meta-data...'),
-                    (['rm', f'user-data-{vm}'], 'removing user-data...'),
+                      answers[f'vm_basename_{val}']+f'-{vm}/'+answers[f'vm_basename_{val}']+f'-{vm}-cidata.iso', '-volid', 'cidata', '-joliet', '-rock', f'user-data', f'meta-data'], 'create iso...'),
                     # hack that wraps ovs-vsctl due to libvirt hard-coding it
                     (['chmod', '+x', 'portunus-ovs-vsctl'],
                      'making ovs-vsctl wrapper executable...'),
@@ -500,6 +498,14 @@ runcmd:
                         shell = command[2]
                     if self.execute_command(command[0], command[1], shell=shell) != 0:
                         sys.exit(1)
+            # remove data files
+            rm_commands = [
+                (['rm', f'meta-data'], 'removing meta-data...'),
+                (['rm', f'user-data'], 'removing user-data...'),
+            ]
+            for command in rm_commands:
+                if self.execute_command(command[0], command[1]) != 0:
+                    sys.exit(1)
 
     def start_info(self, selections):
         start_questions = [
