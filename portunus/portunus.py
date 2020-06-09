@@ -744,7 +744,10 @@ users:
             (['sudo', 'apt-get', 'update'],
              'updating package sources...', '.', True),
             (['sudo', 'apt-get', 'install', '-y', 'qemu-kvm', 'qemu-utils',
-              'genisoimage', 'virtinst', 'wget'], 'installing packages for KVM...', '.', True),
+              'genisoimage', 'virtinst', 'wget', 'autoconf', 'libtool',
+              'libvirt-daemon-system', 'libvirt-clients', 'bridge-utils'],
+             'installing packages for KVM...', '.', True),
+            # TODO add   /usr/local/bin/* PUx, to /etc/apparmor.d/usr.sbin.libvirtd
             (['sudo', 'rm', '-rf', os.path.join(answers['dovesnap_path'],
                                                 'dovesnap')], 'cleaning up dovesnap...'),
             (['sudo', 'git', 'clone', 'https://github.com/cyberreboot/dovesnap'],
@@ -761,7 +764,7 @@ users:
                 failok = command[3]
             if self.execute_command(command[0], command[1], change_dir=change_dir, failok=failok) != 0:
                 sys.exit(1)
-        print('NOTE: For VMs, apparmor profiles will need to be modified for libvirt, the easiest (though less secure option is to set `security_driver = "none"` in `/etc/libvirt/qemu.conf`.')
+        # TODO install openvswitch if asked to
         print('NOTE: For starting VMs you will need Open vSwitch installed locally first.')
         print('NOTE: For VMs to connect to OVS bridges that are not local, `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
 
