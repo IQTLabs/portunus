@@ -427,15 +427,15 @@ class Portunus():
                     pub_key = pub_key.decode('utf-8').rstrip('\n')
                     ssh_key['auth_key'] = f'ssh-authorized-keys:\n      - {pub_key}'
                 cloud_config = """#cloud-config
-
 users:
-  - name: ubuntu
+  - default
+  - name: portunus
     %(auth_key)s
-    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    sudo: ALL=(ALL) NOPASSWD:ALL
     groups: sudo
     shell: /bin/bash
 runcmd:
-  - echo "AllowUsers ubuntu" >> /etc/ssh/sshd_config
+  - echo "AllowUsers portunus" >> /etc/ssh/sshd_config
   - restart ssh
 """ % ssh_key
                 with open(f'user-data-{vm}', 'w') as f:
