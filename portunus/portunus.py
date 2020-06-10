@@ -179,7 +179,7 @@ class Portunus():
                     {
                         'type': 'input',
                         'name': f'network_range_{val}',
-                        'default': '192.168.10.10/24',
+                        'default': '192.168.10.0/24',
                         'message': f'What do you want to make the IP range be for {self.info["network_name_"+str(val)]}?',
                     },
                 )
