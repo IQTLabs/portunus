@@ -431,16 +431,8 @@ users:
     groups: sudo
     shell: /bin/bash
 """ % ssh_key
-                # create meta-data
-                # TODO fix value for each instance
-                metadata = 'local-hostname: ' + \
-                    answers[f'vm_basename_{val}']+f'-{vm}\n'
-                metadata += f'public-keys:\n  - {pub_key}'
-
                 with open(f'user-data', 'w') as f:
                     f.write(cloud_config)
-                with open(f'meta-data', 'w') as f:
-                    f.write(metadata)
 
                 ovs_vsctl = subprocess.check_output(
                     'which ovs-vsctl', shell=True)
@@ -458,6 +450,9 @@ users:
                 if answers[f'vm_os_{val}'] is not 'None':
                     os_variant = answers[f'vm_os_{val}']
                 vm_commands += [
+                    # create meta-data
+                    (['echo "local-hostname: ' + \
+                      answers[f'vm_basename_{val}']+f'-{vm}" > meta-data'], 'create meta-data...', True),
                     # create iso
                     (['sudo', 'genisoimage', '-output', '/var/lib/libvirt/images/' + \
                       answers[f'vm_basename_{val}']+f'-{vm}/'+answers[f'vm_basename_{val}']+f'-{vm}-cidata.iso', '-volid', 'cidata', '-joliet', '-rock', f'user-data', f'meta-data'], 'create iso...'),
@@ -727,6 +722,19 @@ users:
                 'default': '/opt',
                 'message': 'What path would you like to install dovesnap in?',
             },
+            {
+                'type': 'confirm',
+                'name': 'ovs_install',
+                'default': False,
+                'message': 'Do you already have Open vSwitch installed?',
+            },
+            {
+                'type': 'input',
+                'name': 'ovs_path',
+                'default': '/opt',
+                'when': lambda answers: not answers['ovs_install'],
+                'message': 'What path would you like to install ovs in?',
+            },
         ]
         answers = prompt(install_questions, style=custom_style_2)
         if answers:
@@ -747,7 +755,6 @@ users:
               'genisoimage', 'virtinst', 'wget', 'autoconf', 'libtool',
               'libvirt-daemon-system', 'libvirt-clients', 'bridge-utils'],
              'installing packages for KVM...', '.', True),
-            # TODO add   /usr/local/bin/* PUx, to /etc/apparmor.d/usr.sbin.libvirtd
             (['sudo', 'rm', '-rf', os.path.join(answers['dovesnap_path'],
                                                 'dovesnap')], 'cleaning up dovesnap...'),
             (['sudo', 'git', 'clone', 'https://github.com/cyberreboot/dovesnap'],
@@ -755,6 +762,21 @@ users:
             (['sudo', 'docker-compose', 'up', '-d', '--build'], 'building dovesnap...',
              os.path.join(answers['dovesnap_path'], 'dovesnap')),
         ]
+        if not answers['ovs_install']:
+            commands += [
+                (['sudo', 'rm', '-rf', os.path.join(answers['ovs_path'],
+                                                    'ovs')], 'cleaning up ovs...'),
+                (['sudo', 'git', 'clone', 'https://github.com/openvswitch/ovs'],
+                    'cloning ovs...', answers['ovs_path']),
+                (['sudo', './boot.sh'], 'bootstrapping ovs...',
+                    os.path.join(answers['ovs_path'], 'ovs')),
+                (['sudo', './configure'], 'configuring ovs...',
+                    os.path.join(answers['ovs_path'], 'ovs')),
+                (['sudo', 'make'], 'making ovs...',
+                    os.path.join(answers['ovs_path'], 'ovs')),
+                (['sudo', 'make', 'install'], 'installing ovs...',
+                    os.path.join(answers['ovs_path'], 'ovs')),
+            ]
         for command in commands:
             change_dir = None
             failok = False
@@ -764,8 +786,10 @@ users:
                 failok = command[3]
             if self.execute_command(command[0], command[1], change_dir=change_dir, failok=failok) != 0:
                 sys.exit(1)
-        # TODO install openvswitch if asked to
-        print('NOTE: For starting VMs you will need Open vSwitch installed locally first.')
+        # TODO this is brittle and can happen more than once which is bad
+        os.system(
+            'sudo sed -i \'/usr\/bin/ i \ \ \/usr\/local\/bin\/* PUx,\' /etc/apparmor.d/usr.sbin.libvirtd')
+        os.system('sudo systemctl restart libvirtd.service')
         print('NOTE: For VMs to connect to OVS bridges that are not local, `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
 
     def main(self):
