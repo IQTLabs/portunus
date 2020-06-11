@@ -1,0 +1,61 @@
+dps:
+  switch1:
+    arp_neighbor_timeout: 900
+    dp_id: 2
+    hardware: Allied-Telesis
+    interfaces:
+      2:
+        description: controller nfv
+        tagged_vlans:
+        - management
+        - tenant1-0
+        - tenant2-0
+        - tenant3-0
+        - tenant4-0
+      3:
+        description: controller mirror
+        output_only: true
+      4:
+        description: host1 tenant1 tenant2
+        tagged_vlans:
+        - management
+        - tenant1-0
+        - tenant2-0
+      5:
+        description: host1 tenant3
+        tagged_vlans:
+        - tenant3-0
+      6:
+        description: host2 tenant4
+        tagged_vlans:
+        - management
+        - tenant4-0
+      7:
+        description: host3 all tenants
+        tagged_vlans:
+        - management
+        - tenant1-0
+        - tenant2-0
+        - tenant3-0
+        - tenant4-0
+    timeout: 1801
+  tenant1-host1:
+    dp_id: 0x1101
+    hardware: Open vSwitch
+    interface_ranges:
+      1-100:
+        native_vlan: tenant1-0
+    interfaces:
+      4294967294:
+        native_vlan: tenant1-0
+vlans:
+  management:
+    vid: 199
+  tenant1-0:
+    vid: 110
+  tenant2-0:
+    vid: 120
+  tenant3-0:
+    vid: 130
+  tenant4-0:
+    vid: 140
