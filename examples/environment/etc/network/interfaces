@@ -1,0 +1,62 @@
+auto lo
+iface lo inet loopback
+
+auto enp4s0
+iface enp4s0 inet dhcp
+
+allow-hotplug enp3s0
+iface enp3s0 inet manual
+    pre-up ifconfig $IFACE up
+    post-down ifconfig $IFACE down
+
+auto enp1s0
+iface enp1s0 inet static
+    address 192.168.168.10
+    netmask 255.255.255.0
+    network 192.168.168.0
+    broadcast 192.168.168.255
+
+auto enp2s0.110
+iface enp2s0.110 inet static
+    vlan-raw-device enp2s0
+    address 192.168.110.1
+    netmask 255.255.255.0
+    network 192.168.110.0
+    broadcast 192.168.110.255
+    dns-nameservers 8.8.8.8
+
+auto enp2s0.120
+iface enp2s0.120 inet static
+    vlan-raw-device enp2s0
+    address 192.168.120.1
+    netmask 255.255.255.0
+    network 192.168.120.0
+    broadcast 192.168.120.255
+    dns-nameservers 8.8.8.8
+
+auto enp2s0.130
+iface enp2s0.130 inet static
+    vlan-raw-device enp2s0
+    address 192.168.130.1
+    netmask 255.255.255.0
+    network 192.168.130.0
+    broadcast 192.168.130.255
+    dns-nameservers 8.8.8.8
+
+auto enp2s0.140
+iface enp2s0.140 inet static
+    vlan-raw-device enp2s0
+    address 192.168.140.1
+    netmask 255.255.255.0
+    network 192.168.140.0
+    broadcast 192.168.140.255
+    dns-nameservers 8.8.8.8
+
+auto enp2s0.199
+iface enp2s0.199 inet static
+    vlan-raw-device enp2s0
+    address 192.168.199.1
+    netmask 255.255.255.0
+    network 192.168.199.0
+    broadcast 192.168.199.255
+    dns-nameservers 8.8.8.8
