@@ -8,12 +8,12 @@ from pprint import pprint
 
 import docker
 import inflect
-from examples import custom_style_2
 from PyInquirer import prompt
 from PyInquirer import Separator
 from PyInquirer import style_from_dict
 from PyInquirer import Token
 
+from examples import custom_style_2
 from portunus.validators import DockerNetworkValidator
 from portunus.validators import ImageValidator
 from portunus.validators import IPValidator
@@ -447,7 +447,7 @@ users:
                 network = client.networks.get(self.info[f'network_name_{val}'])
                 bridge = 'ovsbr-'+network.id[:5]
                 os_variant = 'generic'
-                if answers[f'vm_os_{val}'] is not 'None':
+                if answers[f'vm_os_{val}'] != 'None':
                     os_variant = answers[f'vm_os_{val}']
                 vm_commands += [
                     # create meta-data
