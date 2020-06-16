@@ -139,23 +139,3 @@ class FaucetConfig():
 
     def update_rules(self, acl, updates):
         self.set_config_option('acls', acl, updates)
-
-
-#################
-# EXAMPLE USAGE #
-#################
-
-f = FaucetConfig('faucet.yaml')
-print(f.conf)
-updates = {'new_key': 'foo', 'sw2': 'no more switch'}
-f.update_dps(updates)
-f.update_dp('sw1', updates)
-print(f.conf)
-print(f.get_config_sections())
-print(f.get_config_section('routers'))
-print(f.get_config_option('dps', 'sw1'))
-print(f.get_config_option('acls', 'access-port-protect'))
-f.del_dp('sw2')
-print(f.conf)
-f.update_interfaces('sw1', updates)
-print(f.conf)
