@@ -9,8 +9,11 @@ class FaucetConfig():
     @staticmethod
     def get_config(path):
         conf = {}
-        with open(path) as f:
-            conf[path] = yaml.load(f, Loader=yaml.FullLoader)
+        try:
+            with open(path) as f:
+                conf[path] = yaml.load(f, Loader=yaml.FullLoader)
+        except FileNotFoundError:
+            return None
         if 'include' in conf[path]:
             for include in conf[path]['include']:
                 conf.update(FaucetConfig.get_config(include))
