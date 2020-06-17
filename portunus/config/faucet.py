@@ -10,8 +10,10 @@ class FaucetConfig():
 
     @staticmethod
     def get_config(path):
-        dirname = os.path.dirname(path)
         conf = {}
+        if not path:
+            return conf
+        dirname = os.path.dirname(path)
         try:
             with open(path) as f:
                 conf[path] = yaml.load(f, Loader=yaml.FullLoader)
