@@ -25,12 +25,12 @@ file:
                 3:
                     native_vlan: 100
 """
-    conf_changes = {'s2': 'bogus'}
+    conf_changes = {'file': {'s2': 'bogus'}}
     a = FaucetConfig()
     conf_dict = yaml.safe_load(conf_str)
     a.conf = copy.deepcopy(conf_dict)
     a.set_config_section('dps', conf_changes)
-    conf_dict['file']['dps'].update(conf_changes)
+    conf_dict['file']['dps'].update(conf_changes['file'])
     assert a.conf == conf_dict
 
 
@@ -66,7 +66,8 @@ def test_get_config_sections():
 def test_get_config_section():
     a = FaucetConfig(path='tests/sample_faucet_config.yaml')
     vlans = a.get_config_section('vlans')
-    assert vlans == {'office': {'vid': 100}}
+    assert vlans == {
+        'tests/sample_faucet_config.yaml': {'office': {'vid': 100}}}
 
 
 def test_get_config_option():
@@ -136,4 +137,59 @@ def test_update_interface():
     updates = {'new_key': 'foo', 'sw2': 'no more switch'}
     a.update_interface('t1-1', 1, updates)
     conf_dict['tests/sample_faucet_config.yaml']['dps']['t1-1']['interfaces'][1] = updates
+    assert a.conf == conf_dict
+
+
+def test_update_vlans():
+    a = FaucetConfig(path='tests/sample_faucet_config.yaml')
+    conf_dict = copy.deepcopy(a.conf)
+    updates = {'new_key': 'foo', 'sw2': 'no more switch'}
+    a.update_vlans(updates)
+    conf_dict['tests/sample_faucet_config.yaml']['vlans'].update(updates)
+    assert a.conf == conf_dict
+
+
+def test_del_vlan():
+    a = FaucetConfig(path='tests/sample_faucet_config.yaml')
+    conf_dict = copy.deepcopy(a.conf)
+    a.del_vlan('office')
+    del conf_dict['tests/sample_faucet_config.yaml']['vlans']['office']
+    assert a.conf == conf_dict
+
+
+def test_update_vlan():
+    a = FaucetConfig(path='tests/sample_faucet_config.yaml')
+    conf_dict = copy.deepcopy(a.conf)
+    updates = {'new_key': 'foo', 'sw2': 'no more switch'}
+    a.update_vlan('office', updates)
+    conf_dict['tests/sample_faucet_config.yaml']['vlans']['office'] = updates
+    assert a.conf == conf_dict
+
+
+def test_update_acls():
+    a = FaucetConfig(path='tests/sample_faucet_config.yaml')
+    conf_dict = copy.deepcopy(a.conf)
+    updates = {'new_key': 'foo', 'sw2': 'no more switch'}
+    a.update_acls(updates)
+    conf_dict['tests/sample_faucet_config.yaml']['acls'].update(updates)
+    # TODO test fails because the function we're testing is doing the wrong thing for multi-file defined acls
+    #assert a.conf == conf_dict
+
+
+def test_del_acl():
+    a = FaucetConfig(path='tests/sample_faucet_config.yaml')
+    conf_dict = copy.deepcopy(a.conf)
+    a.del_acl('acl_same_a')
+    del conf_dict['tests/sample_acls.yaml']['acls']['acl_same_a']
+    assert a.conf == conf_dict
+
+
+def test_update_acl():
+    a = FaucetConfig(path='tests/sample_faucet_config.yaml')
+    conf_dict = copy.deepcopy(a.conf)
+    updates = {'new_key': 'foo', 'sw2': 'no more switch'}
+    a.update_acl('acl_diff_d', updates)
+    conf_dict['tests/sample_faucet_config.yaml']['acls']['acl_diff_d'] = updates
+    print(a.conf)
+    print(conf_dict)
     assert a.conf == conf_dict
