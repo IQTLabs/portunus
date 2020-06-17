@@ -5,11 +5,26 @@ import yaml
 
 class FaucetConfig():
 
-    def __init__(self, path):
-        self.conf = self.get_config(path)
+    # TODO add params needed to do RPC
+    def __init__(self, path=None, local=True):
+        if local:
+            self.conf = self.read_config(path)
+        else:
+            self.conf = self.get_config()
 
     @staticmethod
-    def get_config(path):
+    def get_config():
+        conf = {}
+        # TODO
+        return conf
+
+    @staticmethod
+    def send_config():
+        # TODO
+        pass
+
+    @staticmethod
+    def read_config(path):
         conf = {}
         if not path:
             return conf
@@ -21,7 +36,7 @@ class FaucetConfig():
             return conf
         if 'include' in conf[path]:
             for include in conf[path]['include']:
-                conf.update(FaucetConfig.get_config(
+                conf.update(FaucetConfig.read_config(
                     os.path.join(dirname, include)))
         return conf
 

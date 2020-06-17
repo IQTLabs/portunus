@@ -1,3 +1,5 @@
+import copy
+
 import yaml
 
 from portunus.config.faucet import FaucetConfig
@@ -26,9 +28,9 @@ file:
     conf_changes = {'s2': 'bogus'}
     a = FaucetConfig(None)
     conf_dict = yaml.safe_load(conf_str)
-    a.conf = conf_dict
+    a.conf = copy.deepcopy(conf_dict)
     a.set_config_section('dps', conf_changes)
-    conf_dict['file'].update(conf_changes)
+    conf_dict['file']['dps'].update(conf_changes)
     assert a.conf == conf_dict
 
 
@@ -49,7 +51,7 @@ file:
     conf_changes = {'foo': 'bar'}
     a = FaucetConfig(None)
     conf_dict = yaml.safe_load(conf_str)
-    a.conf = conf_dict
+    a.conf = copy.deepcopy(conf_dict)
     a.set_config_option('dps', 's1', conf_changes)
     conf_dict['file']['dps']['s1'].update(conf_changes)
     assert a.conf == conf_dict
@@ -72,3 +74,31 @@ def test_get_config_option():
     dp = a.get_config_option('dps', 't1-1')
     assert dp == {'arp_neighbor_timeout': 900, 'dp_id': 1, 'hardware': 'Open vSwitch', 'interfaces': {1: {'stack': {'dp': 't2-1', 'port': 1}},
                                                                                                       2: {'mirror': [3], 'output_only': True}, 3: {'loop_protect_external': True, 'native_vlan': 'office'}}, 'stack': {'priority': 1}, 'timeout': 1801}
+
+
+def test_update_dps():
+    a = FaucetConfig('tests/sample_faucet_config.yaml')
+    conf_dict = copy.deepcopy(a.conf)
+    updates = {'new_key': 'foo', 'sw2': 'no more switch'}
+    a.update_dps(updates)
+    conf_dict['tests/sample_faucet_config.yaml']['dps'].update(updates)
+    assert a.conf == conf_dict
+
+
+def test_update_dp():
+    a = FaucetConfig('tests/sample_faucet_config.yaml')
+    conf_dict = copy.deepcopy(a.conf)
+    updates = {'new_key': 'foo', 'sw2': 'no more switch'}
+    a.update_dp('t1-1', updates)
+    conf_dict['tests/sample_faucet_config.yaml']['dps']['t1-1'].update(updates)
+    assert a.conf == conf_dict
+
+
+def test_del_dp():
+    a = FaucetConfig('tests/sample_faucet_config.yaml')
+    conf_dict = copy.deepcopy(a.conf)
+    print(conf_dict)
+    a.del_dp('t1-1')
+    print(conf_dict)
+    del conf_dict['tests/sample_faucet_config.yaml']['dps']['t1-1']
+    assert a.conf == conf_dict
