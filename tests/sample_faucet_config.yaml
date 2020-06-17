@@ -40,6 +40,9 @@ dps:
             3:
                 native_vlan: office
                 loop_protect_external: True
+        interface_ranges:
+            '4-10':
+                native_vlan: office
     t2-1:
         dp_id: 0x3
         hardware: "Open vSwitch"
