@@ -1,3 +1,5 @@
+import os
+
 import yaml
 
 
@@ -8,15 +10,17 @@ class FaucetConfig():
 
     @staticmethod
     def get_config(path):
+        dirname = os.path.dirname(path)
         conf = {}
         try:
             with open(path) as f:
                 conf[path] = yaml.load(f, Loader=yaml.FullLoader)
         except FileNotFoundError:
-            return None
+            return conf
         if 'include' in conf[path]:
             for include in conf[path]['include']:
-                conf.update(FaucetConfig.get_config(include))
+                conf.update(FaucetConfig.get_config(
+                    os.path.join(dirname, include)))
         return conf
 
     @staticmethod

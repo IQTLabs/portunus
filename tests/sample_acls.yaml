@@ -1,0 +1,16 @@
+include:
+ - notafile.yaml
+
+acls:
+    acl_same_a:
+        - rule:
+            actions:
+                allow: 1
+    acl_same_b:
+        - rule:
+            actions:
+                allow: 1
+    acl_diff_c:
+        - rule:
+            actions:
+                allow: 0
