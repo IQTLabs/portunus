@@ -3,6 +3,10 @@ import os
 import yaml
 
 
+# TODO
+# deal with removing the last one of something
+# deal with adding the first one of something
+
 class FaucetConfig():
 
     # TODO add params needed to do RPC
@@ -49,7 +53,8 @@ class FaucetConfig():
     def set_config_section(self, section, changes):
         for f in self.conf.keys():
             if section in self.conf[f]:
-                self.conf[f][section].update(changes)
+                self.conf[f][section].update(changes[f])
+                return
 
     def set_config_option(self, section, option, changes, tier=None):
         for f in self.conf.keys():
@@ -57,10 +62,12 @@ class FaucetConfig():
                 if section in self.conf[f][tier]:
                     if option in self.conf[f][tier][section]:
                         self.conf[f][tier][section][option].update(changes)
+                        return
             else:
                 if section in self.conf[f]:
                     if option in self.conf[f][section]:
                         self.conf[f][section][option].update(changes)
+                        return
 
     def get_config_sections(self):
         sections = []
@@ -70,24 +77,27 @@ class FaucetConfig():
         return sorted(list(set(sections)))
 
     def get_config_section(self, section, tier=None):
+        section_dict = {}
         for f in self.conf.keys():
             if tier and tier in self.conf[f]:
                 if section in self.conf[f][tier]:
-                    return self.conf[f][tier][section]
+                    section_dict[f] = self.conf[f][tier][section]
             else:
                 if section in self.conf[f]:
-                    return self.conf[f][section]
-        return {}
+                    section_dict[f] = self.conf[f][section]
+        return section_dict
 
     def get_config_option(self, section, option, tier=None):
         section = self.get_config_section(section, tier=tier)
-        if option in section:
-            return section[option]
+        for f in section:
+            if option in section[f]:
+                return section[f][option]
         return {}
 
     def update_dps(self, updates):
         dps = self.get_config_section('dps')
-        dps.update(updates)
+        for f in dps:
+            dps[f].update(updates)
         self.set_config_section('dps', dps)
 
     def update_dp(self, dp, updates):
@@ -97,8 +107,9 @@ class FaucetConfig():
 
     def del_dp(self, dp_name):
         dps = self.get_config_section('dps')
-        if dp_name in dps:
-            del dps[dp_name]
+        for f in dps:
+            if dp_name in dps[f]:
+                del dps[f][dp_name]
         self.set_config_section('dps', dps)
 
     def update_interfaces(self, dp, updates):
@@ -126,34 +137,42 @@ class FaucetConfig():
 
     def update_vlans(self, updates):
         vlans = self.get_config_section('vlans')
-        vlans.update(updates)
+        for f in vlans:
+            vlans[f].update(updates)
         self.set_config_section('vlans', vlans)
 
     def del_vlan(self, vlan):
         vlans = self.get_config_section('vlans')
-        if vlan in vlans:
-            del vlans[vlan]
+        for f in vlans:
+            if vlan in vlans[f]:
+                del vlans[f][vlan]
         self.set_config_section('vlans', vlans)
 
     def update_vlan(self, vlan, updates):
         vlans = self.get_config_section('vlans')
-        vlans[vlan] = updates
+        for f in vlans:
+            vlans[f][vlan] = updates
         self.set_config_section('vlans', vlans)
 
     def update_acls(self, updates):
         acls = self.get_config_section('acls')
-        acls.update(updates)
+        for f in acls:
+            # TODO this probably needs to go another level deeper to only update acls that changed that exist in each file, not update to all files
+            acls[f].update(updates)
         self.set_config_section('acls', acls)
 
     def del_acl(self, acl):
         acls = self.get_config_section('acls')
-        if acl in acls:
-            del acls[acl]
+        for f in acls:
+            if acl in acls[f]:
+                del acls[f][acl]
         self.set_config_section('acls', acls)
 
     def update_acl(self, acl, updates):
         acls = self.get_config_section('acls')
-        acls[acl] = updates
+        for f in acls:
+            if acl in acls[f]:
+                acls[f][acl] = updates
         self.set_config_section('acls', acls)
 
     def add_rule(self, acl, rule):
