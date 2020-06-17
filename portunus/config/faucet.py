@@ -176,9 +176,11 @@ class FaucetConfig():
         self.set_config_section('acls', acls)
 
     def add_rule(self, acl, rule):
+        # TODO this isn't right
         rules = self.get_config_option('acls', acl)
         rules.append(rule)
         self.set_config_option('acls', acl, rules)
 
     def update_rules(self, acl, updates):
+        # TODO this isn't right
         self.set_config_option('acls', acl, updates)
