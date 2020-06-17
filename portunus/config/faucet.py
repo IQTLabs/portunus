@@ -52,7 +52,7 @@ class FaucetConfig():
         for f in self.conf.keys():
             for key in self.conf[f].keys():
                 sections.append(key)
-        return sections
+        return sorted(list(set(sections)))
 
     def get_config_section(self, section, tier=None):
         for f in self.conf.keys():
