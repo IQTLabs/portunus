@@ -691,7 +691,7 @@ users:
         if 'faucet' in selections:
             commands = [
                 # TODO put in real commands
-                (['ping', '-c 4', 'python.org'], 'setting up Faucet...'),
+                (['ls'], 'setting up Faucet...'),
             ]
             for command in commands:
                 if self.execute_command(command[0], command[1]) != 0:
@@ -699,7 +699,7 @@ users:
         if 'monitoring' in selections:
             commands = [
                 # TODO put in real commands
-                (['ping', '-c 4', 'python.org'], 'setting up Monitoring...'),
+                (['ls'], 'setting up Monitoring...'),
             ]
             for command in commands:
                 if self.execute_command(command[0], command[1]) != 0:
@@ -707,7 +707,7 @@ users:
         if 'poseidon' in selections:
             commands = [
                 # TODO put in real commands
-                (['ping', '-c 4', 'python.org'], 'setting up Poseidon...'),
+                (['ls'], 'setting up Poseidon...'),
             ]
             for command in commands:
                 if self.execute_command(command[0], command[1]) != 0:
