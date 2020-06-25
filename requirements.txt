@@ -1,3 +1,4 @@
 docker==4.2.0
 inflect==4.1.0
 PyInquirer==1.0.3
+ptyprocess==0.6.0
