@@ -26,7 +26,6 @@ class Portunus():
     def __init__(self):
         self.info = {}
         self.p = inflect.engine()
-        self.main()
 
     @staticmethod
     def execute_command(command, message, change_dir=None, failok=False, shell=False):
