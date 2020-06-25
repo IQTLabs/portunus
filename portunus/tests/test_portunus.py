@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 import textwrap
 
+from portunus.portunus import Portunus
 from portunus.tests.helpers import create_example_fixture
 from portunus.tests.helpers import keys
 
@@ -30,3 +31,8 @@ def test_portunus(portunus_app):
           ○ Install Dependencies"""))
     portunus_app.writeline(keys.SPACE)
     portunus_app.writeline(keys.ENTER)
+
+
+def test_setup_info():
+    a = Portunus()
+    a.setup_info(['faucet', 'monitoring', 'poseidon'])
