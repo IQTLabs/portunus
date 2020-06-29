@@ -49,8 +49,12 @@ def test_network():
     class MockPortunus(Portunus):
 
         @staticmethod
+        def execute_command(command, message, change_dir=None, failok=False, shell=False):
+            return 0
+
+        @staticmethod
         def execute_prompt(questions):
-            return {'foo': 'bar'}
+            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip_1': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port_1': '6653', 'gauge_ip_1': '192.168.1.1', 'gauge_port_1': '6654'}
 
     mock_portunus = MockPortunus()
     mock_portunus.get_network_info(1, {})
