@@ -53,35 +53,6 @@ style = style_from_dict({
 })
 
 
-def feed_app_with_input(type, message, text, **kwargs):
-    """
-    Create a CommandLineInterface, feed it with the given user input and return
-    the CLI object.
-
-    This returns a (result, CLI) tuple.
-    note: this only works if you import your prompt and then this function!!
-    """
-    # If the given text doesn't end with a newline, the interface won't finish.
-    assert text.endswith('\n')
-
-    application = getattr(prompts, type).question(message, **kwargs)
-
-    loop = PosixEventLoop()
-    try:
-        inp = PipeInput()
-        inp.send_text(text)
-        cli = CommandLineInterface(
-            application=application,
-            eventloop=loop,
-            input=inp,
-            output=DummyOutput())
-        result = cli.run()
-        return result, cli
-    finally:
-        loop.close()
-        inp.close()
-
-
 def remove_ansi_escape_sequences(text):
     # http://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
     # remove all ansi escape sequences
@@ -128,27 +99,11 @@ class SimplePty(PtyProcess):
         The size argument still refers to bytes, not unicode code points.
         """
         b = super(SimplePty, self).read(size)
-        if not b:
-            return ''
         if self.skip_cr:
             b = b.replace(b'\r', b'')
         # if self.skip_ansi:
         #    b = remove_ansi_escape_sequences(b)
         return self.decoder.decode(b, final=False)
-
-    def readline(self):
-        """Read one line from the pseudoterminal, and return it as unicode.
-
-        Can block if there is nothing to read. Raises :exc:`EOFError` if the
-        terminal was closed.
-        note: this is a specialized version that does not have \r\n at the end
-        """
-        # TODO implement a timeout
-        b = super(SimplePty, self).readline().strip()
-        s = self.decoder.decode(b, final=False)
-        if self.skip_ansi:
-            s = remove_ansi_escape_sequences(s)
-        return s
 
     def write(self, s):
         """Write the unicode string ``s`` to the pseudoterminal.
@@ -208,44 +163,19 @@ class SimplePty(PtyProcess):
             if len(reads) > 0:
                 try:
                     buf = remove_ansi_escape_sequences(buf + self.read())
-                except EOFError:
+                except EOFError:  # pragma: no cover
                     print('len: %d' % len(buf))
                     assert buf == text
                 if buf == text:
                     return
-                elif len(buf) >= len(text):
+                elif len(buf) >= len(text):  # pragma: no cover
                     break
-            else:
+            else:  # pragma: no cover
                 # do not eat up CPU when waiting for the timeout to expire
                 time.sleep(self.timeout/10)
         print(repr(buf))  # debug ansi code handling
         print(repr(text))
         assert buf == text
-
-    def expect_regex(self, pattern):
-        """Read until matches pattern or timeout."""
-        # inspired by pexpect/pty_spawn and  pexpect/expect.py expect_loop
-        end_time = time.time() + self.timeout
-        buf = ''
-        prog = regex.compile(pattern)
-        while (end_time - time.time()) > 0.0:
-            # switch to nonblocking read
-            reads, _, _ = select.select(
-                [self.fd], [], [], end_time - time.time())
-            if len(reads) > 0:
-                try:
-                    buf = remove_ansi_escape_sequences(buf + self.read())
-                except EOFError:
-                    assert prog.match(buf) is not None, \
-                        'output was:\n%s\nexpect regex pattern:\n%s' % (
-                            buf, pattern)
-                if prog.match(buf):
-                    return True
-            else:
-                # do not eat up CPU when waiting for the timeout to expire
-                time.sleep(self.timeout/10)
-        assert prog.match(buf) is not None, \
-            'output was:\n%s\nexpect regex pattern:\n%s' % (buf, pattern)
 
 
 def create_example_fixture(example):
@@ -263,7 +193,7 @@ def create_example_fixture(example):
         time.sleep(p.delayafterterminate)
         try:
             p.sendintr()  # in case the subprocess was not ended by the test
-        except OSError as e:
+        except OSError as e:  # pragma: no cover
             if e.errno != 5:
                 raise
         p.wait()  # without wait() the coverage info never arrives

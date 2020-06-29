@@ -36,6 +36,11 @@ class Portunus():
         os.system(command)
 
     @staticmethod
+    def output_command(command):
+        output = subprocess.check_output(command, shell=True)
+        return output.decode('utf-8').rstrip('\n')
+
+    @staticmethod
     def execute_command(command, message, change_dir=None, failok=False, shell=False):
         logging.info(message)
         logging.debug(' '.join(command))
@@ -444,9 +449,7 @@ users:
                 with open(f'user-data', 'w') as f:
                     f.write(cloud_config)
 
-                ovs_vsctl = subprocess.check_output(
-                    'which ovs-vsctl', shell=True)
-                ovs_vsctl = ovs_vsctl.decode('utf-8').rstrip('\n')
+                ovs_vsctl = self.output_command('which ovs-vsctl')
                 ovs_wrapper = """#!/bin/bash
 
 %s-orig --db=tcp:127.0.0.1:6640 $@
@@ -454,7 +457,13 @@ users:
                 with open('portunus-ovs-vsctl', 'w') as f:
                     f.write(ovs_wrapper)
                 client = docker.from_env()
-                network = client.networks.get(self.info[f'network_name_{val}'])
+                try:
+                    network = client.networks.get(
+                        self.info[f'network_name_{val}'])
+                except docker.errors.NotFound:
+                    logging.error('Docker network not found ' +
+                                  self.info[f'network_name_{val}'])
+                    sys.exit(1)
                 bridge = 'ovsbr-'+network.id[:5]
                 os_variant = 'generic'
                 if answers[f'vm_os_{val}'] != 'None':

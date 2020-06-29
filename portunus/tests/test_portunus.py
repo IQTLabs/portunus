@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 
 import textwrap
 
+import pytest
+
 from portunus.portunus import Portunus
 from portunus.tests.helpers import create_example_fixture
 from portunus.tests.helpers import keys
@@ -52,11 +54,16 @@ def test_network():
             return 0
 
         @staticmethod
+        def output_command(command):
+            return ''
+
+        @staticmethod
         def execute_prompt(questions):
-            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip_1': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port_1': '6653', 'gauge_ip_1': '192.168.1.1', 'gauge_port_1': '6654'}
+            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip_1': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True, 'Specify Gateway': True, 'Specify IP Range': True, 'Specify Datapath ID': True, 'Specify NIC to attach to the network (external connectivity if not using NAT)': True}, 'faucet_port_1': '6653', 'gauge_ip_1': '192.168.1.1', 'gauge_port_1': '6654', 'network_subnet_1': '192.168.0.0/24', 'network_gateway_1': '192.168.0.1', 'network_range_1': '192.168.0.0/24', 'network_dpid_1': '0x2', 'network_nic_1': 'en0', 'network_nic_port_1': '1', 'container_ssh_username_1': 'foo', 'remote_image_1': 'https://fooo.img', 'num_vms_1': 2, 'vm_basename_1': 'foo', 'vm_imagesize_1': '10g', 'vm_ssh_key_1': 'foo', 'vm_ssh_username_1': 'foo'}
 
     mock_portunus = MockPortunus()
-    mock_portunus.get_network_info(1, {})
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        mock_portunus.get_network_info(1, {'vms': True})
 
 
 def test_install():
@@ -77,6 +84,11 @@ def test_install():
 
     mock_portunus = MockPortunus()
     mock_portunus.install_info({})
+
+
+def test_clean():
+    portunus = Portunus()
+    portunus.cleanup_info({})
 
 
 def test_main():
