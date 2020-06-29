@@ -27,7 +27,7 @@ class Portunus():
         self.p = inflect.engine()
 
     @staticmethod
-    def execute_prompt(questions, answers):
+    def execute_prompt(questions):
         answers = prompt(questions, style=custom_style_2)
         return answers
 
@@ -150,12 +150,12 @@ class Portunus():
         ]
 
     def get_network_info(self, val, selections):
-        answers = prompt(self.network_q_set_1(val), style=custom_style_2)
+        answers = self.execute_prompt(self.network_q_set_1(val))
         if answers:
             self.info.update(answers)
         else:
             sys.exit(0)
-        if not answers['network_exist']:
+        if 'network_exist' in answers and not answers['network_exist']:
             self.faucet_info(val)
             network_mode = 'nat' if self.info[f'network_mode_{val}'] else 'flat'
             create_network = ['docker', 'network', 'create', '-d',
@@ -217,7 +217,7 @@ class Portunus():
                     }
                 )
             if network_questions:
-                answers = prompt(network_questions, style=custom_style_2)
+                answers = self.execute_prompt(network_questions)
                 if answers:
                     self.info.update(answers)
                 else:
@@ -285,7 +285,7 @@ class Portunus():
                     'message': 'What is your GitHub username?',
                 },
             ]
-            answers = prompt(container_questions, style=custom_style_2)
+            answers = self.execute_prompt(container_questions)
             if answers:
                 self.info.update(answers)
             else:
@@ -383,7 +383,7 @@ class Portunus():
                     'message': 'What is your GitHub username?',
                 },
             ]
-            answers = prompt(vm_questions, style=custom_style_2)
+            answers = self.execute_prompt(vm_questions)
             if answers:
                 self.info.update(answers)
             else:
@@ -519,7 +519,7 @@ users:
                 'filter': lambda val: int(val)
             },
         ]
-        answers = prompt(start_questions, style=custom_style_2)
+        answers = self.execute_prompt(start_questions)
         if answers:
             self.info.update(answers)
         else:
@@ -549,7 +549,7 @@ users:
                     },
                 ]
 
-                answers = prompt(question, style=custom_style_2)
+                answers = self.execute_prompt(question)
                 if 'cleanup_containers' in answers:
                     answers = answers['cleanup_containers']
                     for answer in answers:
@@ -593,7 +593,7 @@ users:
                     },
                 ]
 
-                answers = prompt(question, style=custom_style_2)
+                answers = self.execute_prompt(question)
                 if 'cleanup_networks' in answers:
                     answers = answers['cleanup_networks']
                     for answer in answers:
@@ -631,7 +631,7 @@ users:
                     },
                 ]
 
-                answers = prompt(question, style=custom_style_2)
+                answers = self.execute_prompt(question)
                 if 'cleanup_vms' in answers:
                     answers = answers['cleanup_vms']
                     for answer in answers:
@@ -666,7 +666,7 @@ users:
                 'message': 'Is Gauge being used for '+self.info[f'network_name_{val}']+'?',
             },
         ]
-        answers = prompt(faucet_questions, style=custom_style_2)
+        answers = self.execute_prompt(faucet_questions)
         if answers:
             self.info.update(answers)
             if f'gauge_{val}' in answers and answers[f'gauge_{val}']:
@@ -686,7 +686,7 @@ users:
                         'validate': PortValidator,
                     },
                 ]
-                answers = prompt(gauge_questions, style=custom_style_2)
+                answers = self.execute_prompt(gauge_questions)
                 if answers:
                     self.info.update(answers)
                 else:
@@ -742,7 +742,7 @@ users:
                 'message': 'What path would you like to install ovs in?',
             },
         ]
-        answers = prompt(install_questions, style=custom_style_2)
+        answers = self.execute_prompt(install_questions)
         if answers:
             self.info.update(answers)
         else:
@@ -825,7 +825,7 @@ users:
             },
         ]
 
-        answers = prompt(question, style=custom_style_2)
+        answers = self.execute_prompt(question)
         actions = {}
         action_dict = {
             'cleanup': self.cleanup_info,

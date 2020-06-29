@@ -42,3 +42,15 @@ def test_network_q_set_1():
     a = Portunus()
     answers = a.network_q_set_1(1)
     assert isinstance(answers, list)
+
+
+def test_network():
+
+    class MockPortunus(Portunus):
+
+        @staticmethod
+        def execute_prompt(questions):
+            return {'foo': 'bar'}
+
+    mock_portunus = MockPortunus()
+    mock_portunus.get_network_info(1, {})
