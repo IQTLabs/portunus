@@ -798,8 +798,9 @@ users:
         os.system('sudo systemctl restart libvirtd.service')
         logging.info('NOTE: For VMs to connect to OVS bridges that are not local, `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
 
-    def main(self):
-        question = [
+    @staticmethod
+    def main_questions():
+        return [
             {
                 'type': 'checkbox',
                 'name': 'intro',
@@ -825,7 +826,8 @@ users:
             },
         ]
 
-        answers = self.execute_prompt(question)
+    def main(self):
+        answers = self.execute_prompt(self.main_questions)
         actions = {}
         action_dict = {
             'cleanup': self.cleanup_info,

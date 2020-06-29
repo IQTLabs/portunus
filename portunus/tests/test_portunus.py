@@ -58,3 +58,19 @@ def test_network():
 
     mock_portunus = MockPortunus()
     mock_portunus.get_network_info(1, {})
+
+
+def test_main():
+
+    class MockPortunus(Portunus):
+
+        @staticmethod
+        def execute_command(command, message, change_dir=None, failok=False, shell=False):
+            return 0
+
+        @staticmethod
+        def execute_prompt(questions):
+            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip_1': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port_1': '6653', 'gauge_ip_1': '192.168.1.1', 'gauge_port_1': '6654', 'intro': {'start containers': True}, 'num_networks': 2, 'num_containers_1': 1, 'container_image_1': 'foo', 'network_name_2': 'foo', 'network_mode_2': 'flat', 'faucet_ip_2': '192.168.2.1', 'faucet_port_2': '6653', 'gauge_2': False, 'num_containers_2': 0}
+
+    mock_portunus = MockPortunus()
+    mock_portunus.main()
