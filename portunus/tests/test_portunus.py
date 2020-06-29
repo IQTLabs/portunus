@@ -80,23 +80,8 @@ def test_install():
 
 
 def test_clean():
-
-    class MockPortunus(Portunus):
-
-        @staticmethod
-        def simple_command(command):
-            return
-
-        @staticmethod
-        def execute_command(command, message, change_dir=None, failok=False, shell=False):
-            return 0
-
-        @staticmethod
-        def execute_prompt(questions):
-            return {}
-
-    mock_portunus = MockPortunus()
-    mock_portunus.cleanup_info({})
+    portunus = Portunus()
+    portunus.cleanup_info({})
 
 
 def test_main():
