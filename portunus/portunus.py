@@ -831,7 +831,7 @@ users:
         ]
 
     def main(self):
-        answers = self.execute_prompt(self.main_questions)
+        answers = self.execute_prompt(self.main_questions())
         actions = {}
         action_dict = {
             'cleanup': self.cleanup_info,
