@@ -457,14 +457,14 @@ users:
                 with open('portunus-ovs-vsctl', 'w') as f:
                     f.write(ovs_wrapper)
                 client = docker.from_env()
+                bridge = 'ovsbr-portunus'
                 try:
                     network = client.networks.get(
                         self.info[f'network_name_{val}'])
+                    bridge = 'ovsbr-'+network.id[:5]
                 except docker.errors.NotFound:
                     logging.error('Docker network not found ' +
                                   self.info[f'network_name_{val}'])
-                    sys.exit(1)
-                bridge = 'ovsbr-'+network.id[:5]
                 os_variant = 'generic'
                 if answers[f'vm_os_{val}'] != 'None':
                     os_variant = answers[f'vm_os_{val}']
