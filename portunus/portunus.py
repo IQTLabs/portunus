@@ -27,6 +27,11 @@ class Portunus():
         self.p = inflect.engine()
 
     @staticmethod
+    def execute_prompt(questions, answers):
+        answers = prompt(questions, style=custom_style_2)
+        return answers
+
+    @staticmethod
     def execute_command(command, message, change_dir=None, failok=False, shell=False):
         logging.info(message)
         logging.debug(' '.join(command))
@@ -36,7 +41,7 @@ class Portunus():
             try:
                 wd = os.getcwd()
                 os.chdir(change_dir)
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 logging.error(
                     f'Unable to change to directory {change_dir} because {e}')
                 return 1
@@ -44,7 +49,7 @@ class Portunus():
             process = subprocess.Popen(command,
                                        stdout=subprocess.PIPE,
                                        universal_newlines=True, shell=shell)
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             if failok:
                 return_code = 0
             else:
@@ -65,7 +70,7 @@ class Portunus():
         if change_dir:
             try:
                 os.chdir(wd)
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 logging.error(
                     f'Unable to change to directory {wd} because {e}')
                 return 1
@@ -95,12 +100,12 @@ class Portunus():
                                               detach=True)
             if command:
                 container.exec_run(command)
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logging.error(f'Failed to start {name} because: {e}')
         logging.info(f'Started {name}')
 
-    def get_network_info(self, val, selections):
-        network_questions = [
+    def network_q_set_1(self, val):
+        return [
             {
                 'type': 'confirm',
                 'name': 'network_exist',
@@ -143,7 +148,9 @@ class Portunus():
                 ],
             },
         ]
-        answers = prompt(network_questions, style=custom_style_2)
+
+    def get_network_info(self, val, selections):
+        answers = prompt(self.network_q_set_1(val), style=custom_style_2)
         if answers:
             self.info.update(answers)
         else:

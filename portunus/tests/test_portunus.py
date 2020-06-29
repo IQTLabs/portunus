@@ -36,3 +36,9 @@ def test_portunus(portunus_app):
 def test_setup_info():
     a = Portunus()
     a.setup_info(['faucet', 'monitoring', 'poseidon'])
+
+
+def test_network_q_set_1():
+    a = Portunus()
+    answers = a.network_q_set_1(1)
+    assert isinstance(answers, list)
