@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import os
 import textwrap
 
 import pytest
@@ -59,11 +60,12 @@ def test_network():
 
         @staticmethod
         def execute_prompt(questions):
-            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip_1': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True, 'Specify Gateway': True, 'Specify IP Range': True, 'Specify Datapath ID': True, 'Specify NIC to attach to the network (external connectivity if not using NAT)': True}, 'faucet_port_1': '6653', 'gauge_ip_1': '192.168.1.1', 'gauge_port_1': '6654', 'network_subnet_1': '192.168.0.0/24', 'network_gateway_1': '192.168.0.1', 'network_range_1': '192.168.0.0/24', 'network_dpid_1': '0x2', 'network_nic_1': 'en0', 'network_nic_port_1': '1', 'container_ssh_username_1': 'foo', 'remote_image_1': 'https://fooo.img', 'num_vms_1': 2, 'vm_basename_1': 'foo', 'vm_imagesize_1': '10g', 'vm_ssh_key_1': 'foo', 'vm_ssh_username_1': 'foo'}
+            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip_1': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True, 'Specify Gateway': True, 'Specify IP Range': True, 'Specify Datapath ID': True, 'Specify NIC to attach to the network (external connectivity if not using NAT)': True}, 'faucet_port_1': '6653', 'gauge_ip_1': '192.168.1.1', 'gauge_port_1': '6654', 'network_subnet_1': '192.168.0.0/24', 'network_gateway_1': '192.168.0.1', 'network_range_1': '192.168.0.0/24', 'network_dpid_1': '0x2', 'network_nic_1': 'en0', 'network_nic_port_1': '1', 'container_ssh_username_1': 'foo', 'remote_image_1': 'https://fooo.img', 'num_vms_1': 2, 'vm_basename_1': 'foo', 'vm_imagesize_1': '10g', 'vm_ssh_key_1': 'foo', 'vm_ssh_username_1': 'foo', 'vm_image_1': True, 'local_image_1': 'foo', 'vm_os_1': 'ubuntu18.04', 'vm_ramsize_1': '1024', 'vm_cpus_1': '2'}
 
     mock_portunus = MockPortunus()
-    with pytest.raises(SystemExit) as pytest_wrapped_e:
-        mock_portunus.get_network_info(1, {'vms': True})
+    mock_portunus.get_network_info(1, {'vms': True})
+    os.remove('portunus-ovs-vsctl')
+    os.remove('user-data')
 
 
 def test_install():
@@ -88,7 +90,7 @@ def test_install():
 
 def test_clean():
     portunus = Portunus()
-    portunus.cleanup_info({})
+    portunus.cleanup_info({'containers': True, 'networks': True, 'vms': True})
 
 
 def test_main():
@@ -105,3 +107,9 @@ def test_main():
 
     mock_portunus = MockPortunus()
     mock_portunus.main()
+
+
+def test_get_first_docker_network():
+    portunus = Portunus()
+    network = portunus.get_first_docker_network()
+    assert network == ''
