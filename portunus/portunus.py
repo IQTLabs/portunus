@@ -1,10 +1,9 @@
-from __future__ import print_function
 from __future__ import unicode_literals
 
+import logging
 import os
 import subprocess
 import sys
-from pprint import pprint
 
 import docker
 import inflect
@@ -29,9 +28,8 @@ class Portunus():
 
     @staticmethod
     def execute_command(command, message, change_dir=None, failok=False, shell=False):
-        print(message)
-        # TODO add logging, and make this a DEBUG statement
-        #print(' '.join(command))
+        logging.info(message)
+        logging.debug(' '.join(command))
         wd = None
         return_code = None
         if change_dir:
@@ -39,7 +37,7 @@ class Portunus():
                 wd = os.getcwd()
                 os.chdir(change_dir)
             except Exception as e:
-                print(
+                logging.error(
                     f'Unable to change to directory {change_dir} because {e}')
                 return 1
         try:
@@ -50,24 +48,26 @@ class Portunus():
             if failok:
                 return_code = 0
             else:
-                print(f'Command "{" ".join(command)}" failed because: {e}!')
+                logging.error(
+                    f'Command "{" ".join(command)}" failed because: {e}!')
                 return_code = 1
 
         if return_code == None:
             while True:
                 output = process.stdout.readline()
-                print(output.strip())
+                logging.info(output.strip())
                 return_code = process.poll()
                 if return_code is not None:
                     for output in process.stdout.readlines():
-                        print(output.strip())
+                        logging.info(output.strip())
                     break
 
         if change_dir:
             try:
                 os.chdir(wd)
             except Exception as e:
-                print(f'Unable to change to directory {wd} because {e}')
+                logging.error(
+                    f'Unable to change to directory {wd} because {e}')
                 return 1
         if failok:
             return_code = 0
@@ -96,8 +96,8 @@ class Portunus():
             if command:
                 container.exec_run(command)
         except Exception as e:
-            print(f'Failed to start {name} because: {e}')
-        print(f'Started {name}')
+            logging.error(f'Failed to start {name} because: {e}')
+        logging.info(f'Started {name}')
 
     def get_network_info(self, val, selections):
         network_questions = [
@@ -789,7 +789,7 @@ users:
         os.system(
             r'sudo sed -i \'/usr\/bin/ i \  \/usr\/local\/bin\/* PUx,\' /etc/apparmor.d/usr.sbin.libvirtd')
         os.system('sudo systemctl restart libvirtd.service')
-        print('NOTE: For VMs to connect to OVS bridges that are not local, `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
+        logging.info('NOTE: For VMs to connect to OVS bridges that are not local, `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
 
     def main(self):
         question = [
