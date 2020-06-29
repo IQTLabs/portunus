@@ -27,6 +27,15 @@ class Portunus():
         self.p = inflect.engine()
 
     @staticmethod
+    def execute_prompt(questions):
+        answers = prompt(questions, style=custom_style_2)
+        return answers
+
+    @staticmethod
+    def simple_command(command):
+        os.system(command)
+
+    @staticmethod
     def execute_command(command, message, change_dir=None, failok=False, shell=False):
         logging.info(message)
         logging.debug(' '.join(command))
@@ -36,7 +45,7 @@ class Portunus():
             try:
                 wd = os.getcwd()
                 os.chdir(change_dir)
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 logging.error(
                     f'Unable to change to directory {change_dir} because {e}')
                 return 1
@@ -44,7 +53,7 @@ class Portunus():
             process = subprocess.Popen(command,
                                        stdout=subprocess.PIPE,
                                        universal_newlines=True, shell=shell)
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             if failok:
                 return_code = 0
             else:
@@ -65,7 +74,7 @@ class Portunus():
         if change_dir:
             try:
                 os.chdir(wd)
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 logging.error(
                     f'Unable to change to directory {wd} because {e}')
                 return 1
@@ -95,12 +104,12 @@ class Portunus():
                                               detach=True)
             if command:
                 container.exec_run(command)
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logging.error(f'Failed to start {name} because: {e}')
         logging.info(f'Started {name}')
 
-    def get_network_info(self, val, selections):
-        network_questions = [
+    def network_q_set_1(self, val):
+        return [
             {
                 'type': 'confirm',
                 'name': 'network_exist',
@@ -143,12 +152,14 @@ class Portunus():
                 ],
             },
         ]
-        answers = prompt(network_questions, style=custom_style_2)
+
+    def get_network_info(self, val, selections):
+        answers = self.execute_prompt(self.network_q_set_1(val))
         if answers:
             self.info.update(answers)
         else:
             sys.exit(0)
-        if not answers['network_exist']:
+        if 'network_exist' in answers and not answers['network_exist']:
             self.faucet_info(val)
             network_mode = 'nat' if self.info[f'network_mode_{val}'] else 'flat'
             create_network = ['docker', 'network', 'create', '-d',
@@ -210,7 +221,7 @@ class Portunus():
                     }
                 )
             if network_questions:
-                answers = prompt(network_questions, style=custom_style_2)
+                answers = self.execute_prompt(network_questions)
                 if answers:
                     self.info.update(answers)
                 else:
@@ -278,7 +289,7 @@ class Portunus():
                     'message': 'What is your GitHub username?',
                 },
             ]
-            answers = prompt(container_questions, style=custom_style_2)
+            answers = self.execute_prompt(container_questions)
             if answers:
                 self.info.update(answers)
             else:
@@ -376,7 +387,7 @@ class Portunus():
                     'message': 'What is your GitHub username?',
                 },
             ]
-            answers = prompt(vm_questions, style=custom_style_2)
+            answers = self.execute_prompt(vm_questions)
             if answers:
                 self.info.update(answers)
             else:
@@ -512,7 +523,7 @@ users:
                 'filter': lambda val: int(val)
             },
         ]
-        answers = prompt(start_questions, style=custom_style_2)
+        answers = self.execute_prompt(start_questions)
         if answers:
             self.info.update(answers)
         else:
@@ -542,7 +553,7 @@ users:
                     },
                 ]
 
-                answers = prompt(question, style=custom_style_2)
+                answers = self.execute_prompt(question)
                 if 'cleanup_containers' in answers:
                     answers = answers['cleanup_containers']
                     for answer in answers:
@@ -586,15 +597,15 @@ users:
                     },
                 ]
 
-                answers = prompt(question, style=custom_style_2)
+                answers = self.execute_prompt(question)
                 if 'cleanup_networks' in answers:
                     answers = answers['cleanup_networks']
                     for answer in answers:
                         network_name = answer.split()[0]
                         for vm in vm_networks[network_name]:
-                            os.system(f'virsh destroy {vm}')
-                            os.system(f'virsh undefine {vm}')
-                            os.system(
+                            self.simple_command(f'virsh destroy {vm}')
+                            self.simple_command(f'virsh undefine {vm}')
+                            self.simple_command(
                                 f'sudo rm -rf /var/lib/libvirt/images/{vm}')
                         for container_name in network_containers[network_name]:
                             c = client.containers.get(container_name)
@@ -624,14 +635,14 @@ users:
                     },
                 ]
 
-                answers = prompt(question, style=custom_style_2)
+                answers = self.execute_prompt(question)
                 if 'cleanup_vms' in answers:
                     answers = answers['cleanup_vms']
                     for answer in answers:
                         vm = answer.split()[0]
-                        os.system(f'virsh destroy {vm}')
-                        os.system(f'virsh undefine {vm}')
-                        os.system(
+                        self.simple_command(f'virsh destroy {vm}')
+                        self.simple_command(f'virsh undefine {vm}')
+                        self.simple_command(
                             f'sudo rm -rf /var/lib/libvirt/images/{vm}')
 
         # TODO ovs/dovesnap
@@ -659,7 +670,7 @@ users:
                 'message': 'Is Gauge being used for '+self.info[f'network_name_{val}']+'?',
             },
         ]
-        answers = prompt(faucet_questions, style=custom_style_2)
+        answers = self.execute_prompt(faucet_questions)
         if answers:
             self.info.update(answers)
             if f'gauge_{val}' in answers and answers[f'gauge_{val}']:
@@ -679,7 +690,7 @@ users:
                         'validate': PortValidator,
                     },
                 ]
-                answers = prompt(gauge_questions, style=custom_style_2)
+                answers = self.execute_prompt(gauge_questions)
                 if answers:
                     self.info.update(answers)
                 else:
@@ -735,7 +746,7 @@ users:
                 'message': 'What path would you like to install ovs in?',
             },
         ]
-        answers = prompt(install_questions, style=custom_style_2)
+        answers = self.execute_prompt(install_questions)
         if answers:
             self.info.update(answers)
         else:
@@ -786,13 +797,14 @@ users:
             if self.execute_command(command[0], command[1], change_dir=change_dir, failok=failok) != 0:
                 sys.exit(1)
         # TODO this is brittle and can happen more than once which is bad
-        os.system(
+        self.simple_command(
             r'sudo sed -i \'/usr\/bin/ i \  \/usr\/local\/bin\/* PUx,\' /etc/apparmor.d/usr.sbin.libvirtd')
-        os.system('sudo systemctl restart libvirtd.service')
+        self.simple_command('sudo systemctl restart libvirtd.service')
         logging.info('NOTE: For VMs to connect to OVS bridges that are not local, `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
 
-    def main(self):
-        question = [
+    @staticmethod
+    def main_questions():
+        return [
             {
                 'type': 'checkbox',
                 'name': 'intro',
@@ -818,7 +830,8 @@ users:
             },
         ]
 
-        answers = prompt(question, style=custom_style_2)
+    def main(self):
+        answers = self.execute_prompt(self.main_questions())
         actions = {}
         action_dict = {
             'cleanup': self.cleanup_info,
