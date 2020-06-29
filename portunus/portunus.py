@@ -32,6 +32,10 @@ class Portunus():
         return answers
 
     @staticmethod
+    def simple_command(command):
+        os.system(command)
+
+    @staticmethod
     def execute_command(command, message, change_dir=None, failok=False, shell=False):
         logging.info(message)
         logging.debug(' '.join(command))
@@ -599,9 +603,9 @@ users:
                     for answer in answers:
                         network_name = answer.split()[0]
                         for vm in vm_networks[network_name]:
-                            os.system(f'virsh destroy {vm}')
-                            os.system(f'virsh undefine {vm}')
-                            os.system(
+                            self.simple_command(f'virsh destroy {vm}')
+                            self.simple_command(f'virsh undefine {vm}')
+                            self.simple_command(
                                 f'sudo rm -rf /var/lib/libvirt/images/{vm}')
                         for container_name in network_containers[network_name]:
                             c = client.containers.get(container_name)
@@ -636,9 +640,9 @@ users:
                     answers = answers['cleanup_vms']
                     for answer in answers:
                         vm = answer.split()[0]
-                        os.system(f'virsh destroy {vm}')
-                        os.system(f'virsh undefine {vm}')
-                        os.system(
+                        self.simple_command(f'virsh destroy {vm}')
+                        self.simple_command(f'virsh undefine {vm}')
+                        self.simple_command(
                             f'sudo rm -rf /var/lib/libvirt/images/{vm}')
 
         # TODO ovs/dovesnap
@@ -793,9 +797,9 @@ users:
             if self.execute_command(command[0], command[1], change_dir=change_dir, failok=failok) != 0:
                 sys.exit(1)
         # TODO this is brittle and can happen more than once which is bad
-        os.system(
+        self.simple_command(
             r'sudo sed -i \'/usr\/bin/ i \  \/usr\/local\/bin\/* PUx,\' /etc/apparmor.d/usr.sbin.libvirtd')
-        os.system('sudo systemctl restart libvirtd.service')
+        self.simple_command('sudo systemctl restart libvirtd.service')
         logging.info('NOTE: For VMs to connect to OVS bridges that are not local, `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
 
     @staticmethod
