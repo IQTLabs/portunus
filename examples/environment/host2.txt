@@ -2,9 +2,7 @@ sudo apt update
 sudo apt upgrade
 sudo apt install vim cpu-checker openssh-server python-is-python3 git python3-pip jq vlan net-tools apt-transport-https ca-certificates curl gnupg-agent software-properties-common
 
-sudo vi /etc/modules-load.d/modules.conf
-    8021q
-    openvswitch
+echo "8021q" | sudo tee -a /etc/modules-load.d/modules.conf && echo "openvswitch" | sudo tee -a /etc/modules-load.d/modules.conf
 
 sudo modprobe 8021q
 sudo modprobe openvswitch
