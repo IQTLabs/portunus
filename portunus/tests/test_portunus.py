@@ -31,8 +31,10 @@ def test_portunus(portunus_app):
           - Setup Poseidon (Not implemented yet)
            ---INSTALL---
           ○ Install Dependencies"""))
+    # pytype: disable=attribute-error
     portunus_app.writeline(keys.SPACE)
     portunus_app.writeline(keys.ENTER)
+    # pytype: enable=attribute-error
 
 
 def test_setup_info():
