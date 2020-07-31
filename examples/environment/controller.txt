@@ -22,7 +22,7 @@ sudo vi /etc/modules-load.d/modules.conf
 
 sudo shutdown -r now
 
-sudo curl -L https://raw.githubusercontent.com/CyberReboot/poseidon/master/bin/poseidon -o /usr/local/bin/poseidon
+sudo curl -L https://raw.githubusercontent.com/IQTLabs/poseidon/master/bin/poseidon -o /usr/local/bin/poseidon
 sudo chmod +x /usr/local/bin/poseidon
 poseidon install
 

@@ -776,7 +776,7 @@ users:
              'installing packages for KVM...', '.', True),
             (['sudo', 'rm', '-rf', os.path.join(answers['dovesnap_path'],
                                                 'dovesnap')], 'cleaning up dovesnap...'),
-            (['sudo', 'git', 'clone', 'https://github.com/cyberreboot/dovesnap'],
+            (['sudo', 'git', 'clone', 'https://github.com/iqtlabs/dovesnap'],
              'cloning dovesnap...', answers['dovesnap_path']),
             (['sudo', 'docker-compose', 'up', '-d', '--build'], 'building dovesnap...',
              os.path.join(answers['dovesnap_path'], 'dovesnap')),
