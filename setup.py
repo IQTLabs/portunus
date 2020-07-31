@@ -17,5 +17,5 @@ setup(
     description=(
         'A platform for multi-tenant environments.'),
     keywords='multi-tenant network analysis utilities',
-    url='https://github.com/CyberReboot/portunus',
+    url='https://github.com/IQTLabs/portunus',
 )

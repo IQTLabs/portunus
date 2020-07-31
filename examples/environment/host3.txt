@@ -37,7 +37,7 @@ sudo vi /etc/sysctl.conf
 
 sudo shutdown -r now
 
-git clone https://github.com/cyberreboot/portunus
+git clone https://github.com/iqtlabs/portunus
 cd portunus
 sudo pip3 install .
 
