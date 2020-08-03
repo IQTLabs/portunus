@@ -153,6 +153,7 @@ class Portunus():
                     {'name': 'Specify Gateway'},
                     {'name': 'Specify IP Range'},
                     {'name': 'Specify Datapath ID'},
+                    {'name': 'Specify a VLAN'},
                     {'name': 'Specify NIC to attach to the network (external connectivity if not using NAT)'},
                 ],
             },
@@ -167,7 +168,7 @@ class Portunus():
         if 'network_exist' in answers and not answers['network_exist']:
             self.faucet_info(val)
             network_mode = 'nat' if self.info[f'network_mode_{val}'] else 'flat'
-            create_network = ['docker', 'network', 'create', '-d',
+            create_network = ['docker', 'network', 'create', '--internal', '-d',
                               'ovs', '-o', f'ovs.bridge.mode={network_mode}']
             network_questions = []
             answers = answers['network_options']
@@ -205,6 +206,17 @@ class Portunus():
                         'name': f'network_dpid_{val}',
                         'default': '0x1',
                         'message': f'What do you want to make the Datapath ID be for {self.info["network_name_"+str(val)]}?',
+                    },
+                )
+            if 'Specify a VLAN' in answers:
+                network_questions.append(
+                    {
+                        'type': 'input',
+                        'name': f'network_vlan_{val}',
+                        'default': '100',
+                        'validate': PortValidator,
+                        'filter': lambda val: int(val),
+                        'message': f'What do you want to make the VLAN be for {self.info["network_name_"+str(val)]}?',
                     },
                 )
             if 'Specify NIC to attach to the network (external connectivity if not using NAT)' in answers:
@@ -245,6 +257,9 @@ class Portunus():
             if f'network_dpid_{val}' in answers:
                 create_network += ['-o',
                                    f'ovs.bridge.dpid={answers["network_dpid_"+str(val)]}']
+            if f'network_vlan_{val}' in answers:
+                create_network += ['-o',
+                                   f'ovs.bridge.vlan={answers["network_vlan_"+str(val)]}']
             if f'network_nic_{val}' in answers:
                 create_network += ['-o',
                                    f'ovs.bridge.add_ports={answers["network_nic_"+str(val)]}/{answers["network_nic_port_"+str(val)]}']
@@ -272,7 +287,7 @@ class Portunus():
                     'default': '1',
                     'message': f'How many containers do you want started on network {self.info["network_name_"+str(val)]}?',
                     'validate': NumberValidator,
-                    'filter': lambda val: int(val)
+                    'filter': lambda val: int(val),
                 },
                 {
                     'type': 'input',
@@ -707,32 +722,6 @@ users:
         else:
             sys.exit(0)
 
-    def setup_info(self, selections):
-        if 'faucet' in selections:
-            commands = [
-                # TODO put in real commands
-                (['ls'], 'setting up Faucet...'),
-            ]
-            for command in commands:
-                if self.execute_command(command[0], command[1]) != 0:
-                    sys.exit(1)
-        if 'monitoring' in selections:
-            commands = [
-                # TODO put in real commands
-                (['ls'], 'setting up Monitoring...'),
-            ]
-            for command in commands:
-                if self.execute_command(command[0], command[1]) != 0:
-                    sys.exit(1)
-        if 'poseidon' in selections:
-            commands = [
-                # TODO put in real commands
-                (['ls'], 'setting up Poseidon...'),
-            ]
-            for command in commands:
-                if self.execute_command(command[0], command[1]) != 0:
-                    sys.exit(1)
-
     def install_info(self, selections):
         install_questions = [
             {
@@ -754,12 +743,29 @@ users:
                 'when': lambda answers: not answers['ovs_install'],
                 'message': 'What path would you like to install ovs in?',
             },
+            {
+                'type': 'confirm',
+                'name': 'faucet_install',
+                'default': False,
+                'message': 'Do you want to install Faucet as well?',
+            },
+            {
+                'type': 'confirm',
+                'name': 'monitoring_install',
+                'default': False,
+                'message': 'Do you want to install monitoring as well?',
+            },
         ]
         answers = self.execute_prompt(install_questions)
         if answers:
             self.info.update(answers)
         else:
             sys.exit(0)
+        dovesnap_compose_files = ['-f', 'docker-compose.yml']
+        if answers['faucet_install']:
+            dovesnap_compose_files += ['-f', 'docker-compose-standalone.yml']
+        if answers['monitoring_install']:
+            dovesnap_compose_files += ['-f', 'docker-compose-monitoring.yml']
         commands = [
             (['git', 'version'], 'checking git version...'),
             (['docker', 'version'], 'checking Docker version...'),
@@ -778,7 +784,7 @@ users:
                                                 'dovesnap')], 'cleaning up dovesnap...'),
             (['sudo', 'git', 'clone', 'https://github.com/iqtlabs/dovesnap'],
              'cloning dovesnap...', answers['dovesnap_path']),
-            (['sudo', 'docker-compose', 'up', '-d', '--build'], 'building dovesnap...',
+            (['sudo', 'docker-compose'] + dovesnap_compose_files + ['up', '-d', '--build'], 'building dovesnap...',
              os.path.join(answers['dovesnap_path'], 'dovesnap')),
         ]
         if not answers['ovs_install']:
@@ -827,12 +833,8 @@ users:
                     {'name': 'Cleanup Containers'},
                     {'name': 'Cleanup VMs'},
                     {'name': 'Cleanup Networks'},
-                    {'name': 'Cleanup Portunus (Faucet, Monitoring, Poseidon, OVS, etc. if running)',
+                    {'name': 'Cleanup Portunus',
                      'disabled': 'Not implemented yet'},
-                    Separator(' ---SETUP--- '),
-                    {'name': 'Setup Faucet', 'disabled': 'Not implemented yet'},
-                    {'name': 'Setup Monitoring', 'disabled': 'Not implemented yet'},
-                    {'name': 'Setup Poseidon', 'disabled': 'Not implemented yet'},
                     Separator(' ---INSTALL--- '),
                     {'name': 'Install Dependencies'},
                 ],
@@ -845,7 +847,6 @@ users:
         action_dict = {
             'cleanup': self.cleanup_info,
             'install': self.install_info,
-            'setup': self.setup_info,
             'start': self.start_info
         }
         if 'intro' in answers:
