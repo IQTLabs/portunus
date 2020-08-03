@@ -277,7 +277,7 @@ class Portunus():
                 {
                     'type': 'input',
                     'name': f'container_image_{val}',
-                    'default': 'cyberreboot/ssh_server:latest',
+                    'default': 'iqtlabs/ssh_server:latest',
                     'when': lambda answers: answers[f'num_containers_{val}'] > 0,
                     'message': 'What image would you like to use for your containers?',
                 },
