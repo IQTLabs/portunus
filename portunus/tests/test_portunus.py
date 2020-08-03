@@ -24,22 +24,13 @@ def test_portunus(portunus_app):
           ○ Cleanup Containers
           ○ Cleanup VMs
           ○ Cleanup Networks
-          - Cleanup Portunus (Faucet, Monitoring, Poseidon, OVS, etc. if running) (Not i
-           ---SETUP---
-          - Setup Faucet (Not implemented yet)
-          - Setup Monitoring (Not implemented yet)
-          - Setup Poseidon (Not implemented yet)
+          - Cleanup Portunus (Not implemented yet)
            ---INSTALL---
           ○ Install Dependencies"""))
     # pytype: disable=attribute-error
     portunus_app.writeline(keys.SPACE)
     portunus_app.writeline(keys.ENTER)
     # pytype: enable=attribute-error
-
-
-def test_setup_info():
-    a = Portunus()
-    a.setup_info(['faucet', 'monitoring', 'poseidon'])
 
 
 def test_network_q_set_1():
@@ -84,7 +75,7 @@ def test_install():
 
         @staticmethod
         def execute_prompt(questions):
-            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip_1': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port_1': '6653', 'gauge_ip_1': '192.168.1.1', 'gauge_port_1': '6654', 'dovesnap_path': 'foo', 'ovs_install': False, 'ovs_path': 'foo'}
+            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip_1': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port_1': '6653', 'gauge_ip_1': '192.168.1.1', 'gauge_port_1': '6654', 'dovesnap_path': 'foo', 'ovs_install': False, 'ovs_path': 'foo', 'faucet_install': False, 'monitoring_install': False}
 
     mock_portunus = MockPortunus()
     mock_portunus.install_info({})
