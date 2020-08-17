@@ -53,7 +53,7 @@ def test_network():
 
         @staticmethod
         def execute_prompt(questions):
-            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip_1': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True, 'Specify Gateway': True, 'Specify IP Range': True, 'Specify Datapath ID': True, 'Specify NIC to attach to the network (external connectivity if not using NAT)': True}, 'faucet_port_1': '6653', 'gauge_ip_1': '192.168.1.1', 'gauge_port_1': '6654', 'network_subnet_1': '192.168.0.0/24', 'network_gateway_1': '192.168.0.1', 'network_range_1': '192.168.0.0/24', 'network_dpid_1': '0x2', 'network_nic_1': 'en0', 'network_nic_port_1': '1', 'container_ssh_username_1': 'foo', 'remote_image_1': 'https://fooo.img', 'num_vms_1': 2, 'vm_basename_1': 'foo', 'vm_imagesize_1': '10g', 'vm_ssh_key_1': 'foo', 'vm_ssh_username_1': 'foo', 'vm_image_1': True, 'local_image_1': 'foo', 'vm_os_1': 'ubuntu18.04', 'vm_ramsize_1': '1024', 'vm_cpus_1': '2'}
+            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True, 'Specify Gateway': True, 'Specify IP Range': True, 'Specify Datapath ID': True, 'Specify NIC to attach to the network (external connectivity if not using NAT)': True}, 'faucet_port': '6653', 'gauge_ip': '192.168.1.1', 'gauge_port': '6654', 'network_subnet_1': '192.168.0.0/24', 'network_gateway_1': '192.168.0.1', 'network_range_1': '192.168.0.0/24', 'network_dpid_1': '0x2', 'network_nic_1': 'en0', 'network_nic_port_1': '1', 'container_ssh_username_1': 'foo', 'remote_image_1': 'https://fooo.img', 'num_vms_1': 2, 'vm_basename_1': 'foo', 'vm_imagesize_1': '10g', 'vm_ssh_key_1': 'foo', 'vm_ssh_username_1': 'foo', 'vm_image_1': True, 'local_image_1': 'foo', 'vm_os_1': 'ubuntu18.04', 'vm_ramsize_1': '1024', 'vm_cpus_1': '2'}
 
     mock_portunus = MockPortunus()
     mock_portunus.get_network_info(1, {'vms': True})
@@ -75,7 +75,7 @@ def test_install():
 
         @staticmethod
         def execute_prompt(questions):
-            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip_1': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port_1': '6653', 'gauge_ip_1': '192.168.1.1', 'gauge_port_1': '6654', 'dovesnap_path': 'foo', 'ovs_install': False, 'ovs_path': 'foo', 'faucet_install': False, 'monitoring_install': False}
+            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port': '6653', 'gauge_ip': '192.168.1.1', 'gauge_port': '6654', 'dovesnap_path': 'foo', 'ovs_install': False, 'ovs_path': 'foo', 'faucet_install': False, 'monitoring_install': False}
 
     mock_portunus = MockPortunus()
     mock_portunus.install_info({})
@@ -96,7 +96,7 @@ def test_main():
 
         @staticmethod
         def execute_prompt(questions):
-            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip_1': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port_1': '6653', 'gauge_ip_1': '192.168.1.1', 'gauge_port_1': '6654', 'intro': {'start containers': True}, 'num_networks': 2, 'num_containers_1': 1, 'container_image_1': 'foo', 'network_name_2': 'foo', 'network_mode_2': 'flat', 'faucet_ip_2': '192.168.2.1', 'faucet_port_2': '6653', 'gauge_2': False, 'num_containers_2': 0}
+            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port': '6653', 'gauge_ip': '192.168.1.1', 'gauge_port': '6654', 'intro': {'start containers': True}, 'num_networks': 2, 'num_containers_1': 1, 'container_image_1': 'foo', 'network_name_2': 'foo', 'network_mode_2': 'flat', 'num_containers_2': 0}
 
     mock_portunus = MockPortunus()
     mock_portunus.main()
