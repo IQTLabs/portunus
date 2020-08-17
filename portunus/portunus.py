@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import logging
+import netifaces
 import os
 import subprocess
 import sys
@@ -152,6 +153,7 @@ class Portunus():
                     {'name': 'Specify Subnet', 'checked': True},
                     {'name': 'Specify Gateway'},
                     {'name': 'Specify IP Range'},
+                    # TODO DPID is required...
                     {'name': 'Specify Datapath ID'},
                     {'name': 'Specify a VLAN'},
                     {'name': 'Specify NIC to attach to the network (external connectivity if not using NAT)'},
@@ -166,7 +168,6 @@ class Portunus():
         else:
             sys.exit(0)
         if 'network_exist' in answers and not answers['network_exist']:
-            self.faucet_info(val)
             network_mode = 'nat' if self.info[f'network_mode_{val}'] else 'flat'
             create_network = ['docker', 'network', 'create', '--internal', '-d',
                               'ovs', '-o', f'ovs.bridge.mode={network_mode}']
@@ -264,15 +265,7 @@ class Portunus():
                 create_network += ['-o',
                                    f'ovs.bridge.add_ports={answers["network_nic_"+str(val)]}/{answers["network_nic_port_"+str(val)]}']
 
-            controller = 'ovs.bridge.controller=tcp:' + \
-                self.info[f'faucet_ip_{val}']+':' + \
-                self.info[f'faucet_port_{val}']
-            if self.info[f'gauge_{val}']:
-                controller += ',tcp:' + \
-                    self.info[f'gauge_ip_{val}']+':' + \
-                    self.info[f'gauge_port_{val}']
-            create_network += [
-                '-o', controller, self.info[f'network_name_{val}']]
+            create_network += [self.info[f'network_name_{val}']]
             commands.append((create_network, 'creating network...'))
 
             for command in commands:
@@ -672,55 +665,6 @@ users:
         # TODO ovs/dovesnap
         return
 
-    def faucet_info(self, val):
-        faucet_questions = [
-            {
-                'type': 'input',
-                'name': f'faucet_ip_{val}',
-                'validate': IPValidator,
-                'message': 'What is the IP of Faucet you\'d like to connect to '+self.info[f'network_name_{val}']+'?',
-            },
-            {
-                'type': 'input',
-                'name': f'faucet_port_{val}',
-                'default': '6653',
-                'message': 'What port is Faucet running on?',
-                'validate': PortValidator,
-            },
-            {
-                'type': 'confirm',
-                'name': f'gauge_{val}',
-                'default': True,
-                'message': 'Is Gauge being used for '+self.info[f'network_name_{val}']+'?',
-            },
-        ]
-        answers = self.execute_prompt(faucet_questions)
-        if answers:
-            self.info.update(answers)
-            if f'gauge_{val}' in answers and answers[f'gauge_{val}']:
-                gauge_questions = [
-                    {
-                        'type': 'input',
-                        'name': f'gauge_ip_{val}',
-                        'default': answers[f'faucet_ip_{val}'],
-                        'validate': IPValidator,
-                        'message': 'What is the IP of Gauge you\'d like to connect to '+self.info[f'network_name_{val}']+'?',
-                    },
-                    {
-                        'type': 'input',
-                        'name': f'gauge_port_{val}',
-                        'default': '6654',
-                        'message': 'What port is Gauge running on?',
-                        'validate': PortValidator,
-                    },
-                ]
-                answers = self.execute_prompt(gauge_questions)
-                if answers:
-                    self.info.update(answers)
-                else:
-                    sys.exit(0)
-        else:
-            sys.exit(0)
 
     def install_info(self, selections):
         install_questions = [
@@ -745,27 +689,87 @@ users:
             },
             {
                 'type': 'confirm',
+                'name': 'monitoring_install',
+                'default': False,
+                'message': 'Do you want to install monitoring (Prometheus and Grafana) as well?',
+            },
+            {
+                'type': 'confirm',
                 'name': 'faucet_install',
                 'default': False,
                 'message': 'Do you want to install Faucet as well?',
             },
             {
-                'type': 'confirm',
-                'name': 'monitoring_install',
-                'default': False,
-                'message': 'Do you want to install monitoring as well?',
+                'type': 'input',
+                'name': 'faucet_ip',
+                'validate': IPValidator,
+                'when': lambda answers: not answers['faucet_install'],
+                'message': 'What is the IP of Faucet you\'d like to connect to?',
             },
+            {
+                'type': 'input',
+                'name': f'faucet_port',
+                'default': '6653',
+                'message': 'What port is Faucet running on?',
+                'when': lambda answers: not answers['faucet_install'],
+                'validate': PortValidator,
+            },
+            {
+                'type': 'confirm',
+                'name': f'gauge_install',
+                'default': True,
+                'when': lambda answers: not answers['faucet_install'],
+                'message': 'Is Gauge being used?',
+            },
+            # TODO ask about stacking interfaces
+            # TODO ask about stack mirror interface
+            # TODO ask about faucetconfrpc ip address
+            # TODO ask about mirror out interface
+            # TODO ask about mirror in interface
         ]
         answers = self.execute_prompt(install_questions)
         if answers:
             self.info.update(answers)
+            if f'gauge_install' in answers and answers[f'gauge_install']:
+                gauge_questions = [
+                    {
+                        'type': 'input',
+                        'name': f'gauge_ip',
+                        'default': answers[f'faucet_ip'],
+                        'validate': IPValidator,
+                        'message': 'What is the IP of Gauge you\'d like to connect to?',
+                    },
+                    {
+                        'type': 'input',
+                        'name': f'gauge_port',
+                        'default': '6654',
+                        'message': 'What port is Gauge running on?',
+                        'validate': PortValidator,
+                    },
+                ]
+                answers = self.execute_prompt(gauge_questions)
+                if answers:
+                    self.info.update(answers)
+                else:
+                    sys.exit(0)
         else:
             sys.exit(0)
         dovesnap_compose_files = ['-f', 'docker-compose.yml']
-        if answers['faucet_install']:
+        env_vars = []
+        if self.info['faucet_install']:
             dovesnap_compose_files += ['-f', 'docker-compose-standalone.yml']
-        if answers['monitoring_install']:
+            default_ip = netifaces.ifaddresses(netifaces.gateways()['default'][netifaces.AF_INET][1])[netifaces.AF_INET][0]['addr']
+            stack_ofcontrollers = "STACK_OFCONTROLLERS=tcp:"+default_ip+":6653,tcp:"+default_ip+":6654"
+            faucetconfrpc_server = "FAUCETCONFRPC_IP="+default_ip
+        else:
+            stack_ofcontrollers = "STACK_OFCONTROLLERS=tcp:"+self.info['faucet_ip']+":"+self.info['faucet_port']
+            faucetconfrpc_server = "FAUCETCONFRPC_IP="+self.info['faucet_ip']
+            if self.info['gauge_install']:
+                stack_ofcontrollers += ",tcp:"+self.info['gauge_ip']+":"+self.info['gauge_port']
+        if self.info['monitoring_install']:
             dovesnap_compose_files += ['-f', 'docker-compose-monitoring.yml']
+        env_vars.append(stack_ofcontrollers)
+        env_vars.append(faucetconfrpc_server)
         commands = [
             (['git', 'version'], 'checking git version...'),
             (['docker', 'version'], 'checking Docker version...'),
@@ -780,27 +784,27 @@ users:
               'genisoimage', 'virtinst', 'wget', 'autoconf', 'libtool',
               'libvirt-daemon-system', 'libvirt-clients', 'bridge-utils'],
              'installing packages for KVM...', '.', True),
-            (['sudo', 'rm', '-rf', os.path.join(answers['dovesnap_path'],
+            (['sudo', 'rm', '-rf', os.path.join(self.info['dovesnap_path'],
                                                 'dovesnap')], 'cleaning up dovesnap...'),
             (['sudo', 'git', 'clone', 'https://github.com/iqtlabs/dovesnap'],
-             'cloning dovesnap...', answers['dovesnap_path']),
-            (['sudo', 'docker-compose'] + dovesnap_compose_files + ['up', '-d', '--build'], 'building dovesnap...',
-             os.path.join(answers['dovesnap_path'], 'dovesnap')),
+             'cloning dovesnap...', self.info['dovesnap_path']),
+            (['sudo'] + env_vars + ['docker-compose'] + dovesnap_compose_files + ['up', '-d', '--build'], 'building dovesnap...',
+             os.path.join(self.info['dovesnap_path'], 'dovesnap')),
         ]
-        if not answers['ovs_install']:
+        if not self.info['ovs_install']:
             commands += [
-                (['sudo', 'rm', '-rf', os.path.join(answers['ovs_path'],
+                (['sudo', 'rm', '-rf', os.path.join(self.info['ovs_path'],
                                                     'ovs')], 'cleaning up ovs...'),
                 (['sudo', 'git', 'clone', 'https://github.com/openvswitch/ovs'],
-                    'cloning ovs...', answers['ovs_path']),
+                    'cloning ovs...', self.info['ovs_path']),
                 (['sudo', './boot.sh'], 'bootstrapping ovs...',
-                    os.path.join(answers['ovs_path'], 'ovs')),
+                    os.path.join(self.info['ovs_path'], 'ovs')),
                 (['sudo', './configure'], 'configuring ovs...',
-                    os.path.join(answers['ovs_path'], 'ovs')),
+                    os.path.join(self.info['ovs_path'], 'ovs')),
                 (['sudo', 'make'], 'making ovs...',
-                    os.path.join(answers['ovs_path'], 'ovs')),
+                    os.path.join(self.info['ovs_path'], 'ovs')),
                 (['sudo', 'make', 'install'], 'installing ovs...',
-                    os.path.join(answers['ovs_path'], 'ovs')),
+                    os.path.join(self.info['ovs_path'], 'ovs')),
             ]
         for command in commands:
             change_dir = None
