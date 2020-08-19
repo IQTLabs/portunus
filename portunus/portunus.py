@@ -488,7 +488,7 @@ users:
                 ovs_vsctl = self.output_command('which ovs-vsctl')
                 ovs_wrapper = """#!/bin/bash
 
-%s-orig --db=tcp:127.0.0.1:6640 $@
+%s-orig --db=unix:/usr/local/var/run/openvswitch/db.sock $@
 """ % ovs_vsctl
                 with open('portunus-ovs-vsctl', 'w') as f:
                     f.write(ovs_wrapper)
