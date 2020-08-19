@@ -96,7 +96,7 @@ def test_main():
 
         @staticmethod
         def execute_prompt(questions):
-            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port': '6653', 'gauge_ip': '192.168.1.1', 'gauge_port': '6654', 'intro': {'start containers': True}, 'num_networks': 2, 'num_containers_1': 1, 'container_image_1': 'foo', 'network_name_2': 'foo', 'network_mode_2': 'flat', 'num_containers_2': 0, 'network_dhcp_1': False}
+            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port': '6653', 'gauge_ip': '192.168.1.1', 'gauge_port': '6654', 'intro': {'start containers': True}, 'num_networks': 2, 'num_containers_1': 1, 'container_image_1': 'foo', 'network_name_2': 'foo', 'network_mode_2': 'flat', 'num_containers_2': 0, 'network_dhcp_1': False, 'network_ip_options': {'Specify Subnet': True}}
 
     mock_portunus = MockPortunus()
     mock_portunus.main()
