@@ -5,6 +5,7 @@ import netifaces
 import os
 import subprocess
 import sys
+import time
 
 import docker
 import inflect
@@ -103,12 +104,14 @@ class Portunus():
 
     @staticmethod
     def start_container(name, image, network, command=None):
+        # TODO check if docker container already exists with name
         try:
             client = docker.from_env()
             container = client.containers.run(image=image, network=network,
                                               name=name, remove=True,
                                               detach=True)
             if command:
+                time.sleep(30)
                 container.exec_run(command)
         except Exception as e:  # pragma: no cover
             logging.error(f'Failed to start {name} because: {e}')
@@ -145,18 +148,35 @@ class Portunus():
                 'message': f'Do you want the {self.p.ordinal(val)} network to use NAT (only available for containers)?',
             },
             {
+                'type': 'confirm',
+                'name': f'network_dhcp_{val}',
+                'default': 'True',
+                'when': lambda answers: not answers['network_exist'],
+                'message': f'Do you want the {self.p.ordinal(val)} network to use DHCP (can not be used with NAT)?',
+            },
+            {
                 'type': 'checkbox',
                 'name': 'network_options',
                 'when': lambda answers: not answers['network_exist'],
                 'message': f'What options do you want to specify for the {self.p.ordinal(val)} network?',
                 'choices': [
-                    {'name': 'Specify Subnet', 'checked': True},
-                    {'name': 'Specify Gateway'},
-                    {'name': 'Specify IP Range'},
-                    # TODO DPID is required...
-                    {'name': 'Specify Datapath ID'},
                     {'name': 'Specify a VLAN'},
                     {'name': 'Specify NIC to attach to the network (external connectivity if not using NAT)'},
+                ],
+            },
+        ]
+
+    def network_q_set_2(self, val):
+        return [
+            {
+                'type': 'checkbox',
+                'name': 'network_ip_options',
+                'when': lambda answers: not answers['network_exist'],
+                'message': f'What IP options do you want to specify for the {self.p.ordinal(val)} network?',
+                'choices': [
+                    {'name': 'Specify Subnet'},
+                    {'name': 'Specify Gateway'},
+                    {'name': 'Specify IP Range'},
                 ],
             },
         ]
@@ -171,9 +191,26 @@ class Portunus():
             network_mode = 'nat' if self.info[f'network_mode_{val}'] else 'flat'
             create_network = ['docker', 'network', 'create', '--internal', '-d',
                               'ovs', '-o', f'ovs.bridge.mode={network_mode}']
+            network_opt_answers = answers['network_options']
+            if not self.info[f'network_dhcp_{val}']:
+                answers = self.execute_prompt(self.network_q_set_2(val))
+                if answers:
+                    self.info.update(answers)
+                    network_opt_answers.update(self.info['network_ip_options'])
+                else:
+                    sys.exit(0)
+            else:
+                create_network += ['--ipam-driver', 'null', '-o', 'ovs.bridge.dhcp=true']
             network_questions = []
-            answers = answers['network_options']
-            if 'Specify Subnet' in answers:
+            network_questions.append(
+                {
+                    'type': 'input',
+                    'name': f'network_dpid_{val}',
+                    'default': f'0x{val}',
+                    'message': f'What do you want to make the Datapath ID be for {self.info["network_name_"+str(val)]}?',
+                },
+            )
+            if 'Specify Subnet' in network_opt_answers:
                 network_questions.append(
                     {
                         'type': 'input',
@@ -182,7 +219,7 @@ class Portunus():
                         'message': f'What do you want to make the subnet be for {self.info["network_name_"+str(val)]}?',
                     }
                 )
-            if 'Specify Gateway' in answers:
+            if 'Specify Gateway' in network_opt_answers:
                 network_questions.append(
                     {
                         'type': 'input',
@@ -191,7 +228,7 @@ class Portunus():
                         'message': f'What do you want to make the gateway be for {self.info["network_name_"+str(val)]}?',
                     },
                 )
-            if 'Specify IP Range' in answers:
+            if 'Specify IP Range' in network_opt_answers:
                 network_questions.append(
                     {
                         'type': 'input',
@@ -200,16 +237,7 @@ class Portunus():
                         'message': f'What do you want to make the IP range be for {self.info["network_name_"+str(val)]}?',
                     },
                 )
-            if 'Specify Datapath ID' in answers:
-                network_questions.append(
-                    {
-                        'type': 'input',
-                        'name': f'network_dpid_{val}',
-                        'default': '0x1',
-                        'message': f'What do you want to make the Datapath ID be for {self.info["network_name_"+str(val)]}?',
-                    },
-                )
-            if 'Specify a VLAN' in answers:
+            if 'Specify a VLAN' in network_opt_answers:
                 network_questions.append(
                     {
                         'type': 'input',
@@ -220,7 +248,7 @@ class Portunus():
                         'message': f'What do you want to make the VLAN be for {self.info["network_name_"+str(val)]}?',
                     },
                 )
-            if 'Specify NIC to attach to the network (external connectivity if not using NAT)' in answers:
+            if 'Specify NIC to attach to the network (external connectivity if not using NAT)' in network_opt_answers:
                 network_questions.append(
                     {
                         'type': 'input',
@@ -460,7 +488,7 @@ users:
                 ovs_vsctl = self.output_command('which ovs-vsctl')
                 ovs_wrapper = """#!/bin/bash
 
-%s-orig --db=tcp:127.0.0.1:6640 $@
+%s-orig --db=unix:/usr/local/var/run/openvswitch/db.sock $@
 """ % ovs_vsctl
                 with open('portunus-ovs-vsctl', 'w') as f:
                     f.write(ovs_wrapper)
