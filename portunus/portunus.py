@@ -104,6 +104,7 @@ class Portunus():
 
     @staticmethod
     def start_container(name, image, network, command=None):
+        # TODO check if docker container already exists with name
         try:
             client = docker.from_env()
             container = client.containers.run(image=image, network=network,
