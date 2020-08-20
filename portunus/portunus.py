@@ -22,6 +22,8 @@ from portunus.validators import NumberValidator
 from portunus.validators import PortValidator
 
 
+logging.basicConfig(level=logging.INFO)
+
 class Portunus():
 
     def __init__(self):
@@ -548,6 +550,7 @@ users:
                         shell = command[2]
                     if self.execute_command(command[0], command[1], shell=shell) != 0:
                         sys.exit(1)
+                logging.info('Starting VM: '+answers[f'vm_basename_{val}']+f'-{vm}')
             # remove data files
             rm_commands = [
                 (['rm', f'meta-data'], 'removing meta-data...'),
@@ -846,6 +849,7 @@ users:
         # TODO this is brittle and can happen more than once which is bad
         self.simple_command(
             'sudo sed -i \'/usr\/bin/ i \  \/usr\/local\/bin\/* PUx,\' /etc/apparmor.d/usr.sbin.libvirtd')
+        self.simple_command('sudo systemctl restart apparmor.service')
         self.simple_command('sudo systemctl restart libvirtd.service')
         logging.info('NOTE: For VMs to connect to OVS bridges that are not local, `ovs-vsctl` is wrapped and the original command is moved to `ovs-vsctl-orig`. This will temporarily happen only when starting VMs, then be put back.')
 
