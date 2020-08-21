@@ -112,7 +112,7 @@ class Portunus():
             exists = client.containers.list(filters={'name': name})
             while len(exists) != 0:
                 basename, num = name.rsplit('_', 1)
-                name = '_'.join(basename, str(int(num) + 1))
+                name = '_'.join([basename, str(int(num) + 1)])
                 exists = client.containers.list(filters={'name': name})
             container = client.containers.run(image=image, network=network,
                                               name=name, remove=True,
@@ -120,9 +120,9 @@ class Portunus():
             if command:
                 time.sleep(30)
                 container.exec_run(command)
+            logging.info(f'Started {name}')
         except Exception as e:  # pragma: no cover
             logging.error(f'Failed to start {name} because: {e}')
-        logging.info(f'Started {name}')
 
     def network_q_set_1(self, val):
         return [
