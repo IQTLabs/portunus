@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import logging
-import netifaces
 import os
 import subprocess
 import sys
@@ -9,6 +8,7 @@ import time
 
 import docker
 import inflect
+import netifaces
 from PyInquirer import prompt
 from PyInquirer import Separator
 from PyInquirer import style_from_dict
@@ -23,6 +23,7 @@ from portunus.validators import PortValidator
 
 
 logging.basicConfig(level=logging.INFO)
+
 
 class Portunus():
 
@@ -106,9 +107,13 @@ class Portunus():
 
     @staticmethod
     def start_container(name, image, network, command=None):
-        # TODO check if docker container already exists with name
         try:
             client = docker.from_env()
+            exists = client.containers.list(filters={'name': name})
+            while len(exists) != 0:
+                basename, num = name.rsplit('_', 1)
+                name = '_'.join(basename, str(int(num) + 1))
+                exists = client.containers.list(filters={'name': name})
             container = client.containers.run(image=image, network=network,
                                               name=name, remove=True,
                                               detach=True)
@@ -202,7 +207,8 @@ class Portunus():
                 else:
                     sys.exit(0)
             else:
-                create_network += ['--ipam-driver', 'null', '-o', 'ovs.bridge.dhcp=true']
+                create_network += ['--ipam-driver',
+                                   'null', '-o', 'ovs.bridge.dhcp=true']
             network_questions = []
             network_questions.append(
                 {
@@ -550,7 +556,8 @@ users:
                         shell = command[2]
                     if self.execute_command(command[0], command[1], shell=shell) != 0:
                         sys.exit(1)
-                logging.info('Starting VM: '+answers[f'vm_basename_{val}']+f'-{vm}')
+                logging.info('Starting VM: ' +
+                             answers[f'vm_basename_{val}']+f'-{vm}')
             # remove data files
             rm_commands = [
                 (['rm', f'meta-data'], 'removing meta-data...'),
@@ -696,7 +703,6 @@ users:
         # TODO ovs/dovesnap
         return
 
-
     def install_info(self, selections):
         install_questions = [
             {
@@ -789,14 +795,18 @@ users:
         env_vars = []
         if self.info['faucet_install']:
             dovesnap_compose_files += ['-f', 'docker-compose-standalone.yml']
-            default_ip = netifaces.ifaddresses(netifaces.gateways()['default'][netifaces.AF_INET][1])[netifaces.AF_INET][0]['addr']
-            stack_ofcontrollers = "STACK_OFCONTROLLERS=tcp:"+default_ip+":6653,tcp:"+default_ip+":6654"
-            faucetconfrpc_server = "FAUCETCONFRPC_IP="+default_ip
+            default_ip = netifaces.ifaddresses(netifaces.gateways(
+            )['default'][netifaces.AF_INET][1])[netifaces.AF_INET][0]['addr']
+            stack_ofcontrollers = 'STACK_OFCONTROLLERS=tcp:' + \
+                default_ip+':6653,tcp:'+default_ip+':6654'
+            faucetconfrpc_server = 'FAUCETCONFRPC_IP='+default_ip
         else:
-            stack_ofcontrollers = "STACK_OFCONTROLLERS=tcp:"+self.info['faucet_ip']+":"+self.info['faucet_port']
-            faucetconfrpc_server = "FAUCETCONFRPC_IP="+self.info['faucet_ip']
+            stack_ofcontrollers = 'STACK_OFCONTROLLERS=tcp:' + \
+                self.info['faucet_ip']+':'+self.info['faucet_port']
+            faucetconfrpc_server = 'FAUCETCONFRPC_IP='+self.info['faucet_ip']
             if self.info['gauge_install']:
-                stack_ofcontrollers += ",tcp:"+self.info['gauge_ip']+":"+self.info['gauge_port']
+                stack_ofcontrollers += ',tcp:' + \
+                    self.info['gauge_ip']+':'+self.info['gauge_port']
         if self.info['monitoring_install']:
             dovesnap_compose_files += ['-f', 'docker-compose-monitoring.yml']
         env_vars.append(stack_ofcontrollers)
