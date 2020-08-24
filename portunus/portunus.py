@@ -633,6 +633,40 @@ users:
                         container_name = answer.split()[0]
                         c = client.containers.get(container_name)
                         c.remove(force=True)
+
+        if 'vms' in selections:
+            vm_choices = []
+            for network in networks:
+                bridge = 'ovsbr-'+network.id[:5]
+                vms = subprocess.check_output(
+                    'virsh list --all --name', shell=True).decode('utf-8').split('\n')
+                for vm in vms:
+                    if vm:
+                        vm_net = subprocess.check_output(
+                            f'virsh domiflist {vm}', shell=True).decode('utf-8')
+                        if bridge in vm_net:
+                            vm_choices.append(
+                                {'name': f'{vm} ({network.name})'})
+            if vm_choices:
+                question = [
+                    {
+                        'type': 'checkbox',
+                        'name': 'cleanup_vms',
+                        'message': 'Which VMs would you like to remove?',
+                        'choices': vm_choices,
+                    },
+                ]
+
+                answers = self.execute_prompt(question)
+                if 'cleanup_vms' in answers:
+                    answers = answers['cleanup_vms']
+                    for answer in answers:
+                        vm = answer.split()[0]
+                        self.simple_command(f'virsh destroy {vm}')
+                        self.simple_command(f'virsh undefine {vm}')
+                        self.simple_command(
+                            f'sudo rm -rf /var/lib/libvirt/images/{vm}')
+
         vm_networks = {}
         if 'networks' in selections:
             network_choices = []
@@ -685,38 +719,6 @@ users:
                             c.remove(force=True)
                         n = client.networks.get(network_name)
                         n.remove()
-        if 'vms' in selections:
-            vm_choices = []
-            for network in networks:
-                bridge = 'ovsbr-'+network.id[:5]
-                vms = subprocess.check_output(
-                    'virsh list --all --name', shell=True).decode('utf-8').split('\n')
-                for vm in vms:
-                    if vm:
-                        vm_net = subprocess.check_output(
-                            f'virsh domiflist {vm}', shell=True).decode('utf-8')
-                        if bridge in vm_net:
-                            vm_choices.append(
-                                {'name': f'{vm} ({network.name})'})
-            if vm_choices:
-                question = [
-                    {
-                        'type': 'checkbox',
-                        'name': 'cleanup_vms',
-                        'message': 'Which VMs would you like to remove?',
-                        'choices': vm_choices,
-                    },
-                ]
-
-                answers = self.execute_prompt(question)
-                if 'cleanup_vms' in answers:
-                    answers = answers['cleanup_vms']
-                    for answer in answers:
-                        vm = answer.split()[0]
-                        self.simple_command(f'virsh destroy {vm}')
-                        self.simple_command(f'virsh undefine {vm}')
-                        self.simple_command(
-                            f'sudo rm -rf /var/lib/libvirt/images/{vm}')
 
         # TODO ovs/dovesnap
         if 'portunus' in selections:
