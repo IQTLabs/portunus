@@ -758,7 +758,7 @@ users:
                 'name': 'frpc_ip',
                 'validate': IPValidator,
                 'when': lambda answers: not answers['faucet_install'],
-                'default': answers['faucet_ip'],
+                'default': lambda answers: answers['faucet_ip'],
                 'message': 'What is the IP of the FaucetConfRPC server you\'d like to connect to?',
             },
             {
