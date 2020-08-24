@@ -192,7 +192,7 @@ class Portunus():
         ]
 
     def get_network_info(self, val, selections):
-        network_opt_answers = []
+        network_opt_answers = {}
         answers = self.execute_prompt(self.network_q_set_1(val))
         if answers:
             self.info.update(answers)
