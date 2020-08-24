@@ -24,7 +24,7 @@ from portunus.validators import PortValidator
 
 level_int = {'CRITICAL': 50, 'ERROR': 40, 'WARNING': 30, 'INFO': 20,
              'DEBUG': 10}
-level = level_int.get(os.getenv('LOGLEVEL').upper(), 0)
+level = level_int.get(os.getenv('LOGLEVEL', 'ERROR').upper(), 0)
 logging.basicConfig(level=level)
 
 
