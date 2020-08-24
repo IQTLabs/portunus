@@ -161,7 +161,7 @@ class Portunus():
                 'type': 'confirm',
                 'name': f'network_dhcp_{val}',
                 'default': 'True',
-                'when': lambda answers: not answers['network_exist'],
+                'when': lambda answers: not answers[f'network_mode_{val}'] and not answers['network_exist'],
                 'message': f'Do you want the {self.p.ordinal(val)} network to use DHCP (can not be used with NAT)?',
             },
             {
@@ -181,7 +181,7 @@ class Portunus():
             {
                 'type': 'checkbox',
                 'name': 'network_ip_options',
-                'when': lambda answers: not answers['network_exist'],
+                'when': self.info['network_exist'],
                 'message': f'What IP options do you want to specify for the {self.p.ordinal(val)} network?',
                 'choices': [
                     {'name': 'Specify Subnet'},
