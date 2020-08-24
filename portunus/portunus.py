@@ -192,6 +192,7 @@ class Portunus():
         ]
 
     def get_network_info(self, val, selections):
+        network_opt_answers = []
         answers = self.execute_prompt(self.network_q_set_1(val))
         if answers:
             self.info.update(answers)
@@ -201,7 +202,8 @@ class Portunus():
             network_mode = 'nat' if self.info[f'network_mode_{val}'] else 'flat'
             create_network = ['docker', 'network', 'create', '--internal', '-d',
                               'ovs', '-o', f'ovs.bridge.mode={network_mode}']
-            network_opt_answers = answers['network_options']
+            if 'network_options' in answers and answers['network_options']:
+                network_opt_answers = answers['network_options']
             if f'network_dhcp_{val}' in self.info and self.info[f'network_dhcp_{val}']:
                 create_network += ['--ipam-driver',
                                    'null', '-o', 'ovs.bridge.dhcp=true']
@@ -209,7 +211,9 @@ class Portunus():
                 answers = self.execute_prompt(self.network_q_set_2(val))
                 if answers:
                     self.info.update(answers)
-                    network_opt_answers.update(self.info['network_ip_options'])
+                    if 'network_ip_options' in self.info and self.info['network_ip_optionos']:
+                        network_opt_answers.update(
+                            self.info['network_ip_options'])
                 else:
                     sys.exit(0)
             network_questions = []
