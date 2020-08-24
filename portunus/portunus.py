@@ -22,7 +22,10 @@ from portunus.validators import NumberValidator
 from portunus.validators import PortValidator
 
 
-logging.basicConfig(level=logging.INFO)
+level_int = {'CRITICAL': 50, 'ERROR': 40, 'WARNING': 30, 'INFO': 20,
+             'DEBUG': 10}
+level = level_int.get(os.getenv('LOGLEVEL').upper(), 0)
+logging.basicConfig(level=level)
 
 
 class Portunus():
@@ -78,7 +81,7 @@ class Portunus():
                 return_code = process.poll()
                 if return_code is not None:
                     for output in process.stdout.readlines():
-                        logging.info(output.strip())
+                        logging.debug(output.strip())
                     break
 
         if change_dir:
@@ -329,12 +332,13 @@ class Portunus():
                     'type': 'confirm',
                     'name': f'container_ssh_key_{val}',
                     'default': True,
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0,
                     'message': 'Would you like to add your SSH key from GitHub to the containers?',
                 },
                 {
                     'type': 'input',
                     'name': f'container_ssh_username_{val}',
-                    'when': lambda answers: answers[f'container_ssh_key_{val}'],
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0 and answers[f'container_ssh_key_{val}'],
                     'message': 'What is your GitHub username?',
                 },
             ]
@@ -375,6 +379,7 @@ class Portunus():
                     'type': 'confirm',
                     'name': f'vm_image_{val}',
                     'default': False,
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'Do you already have an image locally you want to use for network {self.info["network_name_"+str(val)]}?',
                 },
                 {
@@ -382,17 +387,18 @@ class Portunus():
                     'name': f'local_image_{val}',
                     'validate': ImageValidator,
                     'message': 'What is the path to the image you wish to use?',
-                    'when': lambda answers: answers[f'vm_image_{val}']
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and answers[f'vm_image_{val}']
                 },
                 {
                     'type': 'input',
                     'name': f'remote_image_{val}',
                     'message': 'What is the URL to the image you wish to use?',
-                    'when': lambda answers: not answers[f'vm_image_{val}']
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and not answers[f'vm_image_{val}']
                 },
                 {
                     'type': 'input',
                     'name': f'vm_basename_{val}',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'What basename do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
                 },
                 {
@@ -400,6 +406,7 @@ class Portunus():
                     'name': f'vm_imagesize_{val}',
                     # TODO needs validation
                     'default': '5G',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'What size disk do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
                 },
                 {
@@ -407,6 +414,7 @@ class Portunus():
                     'name': f'vm_ramsize_{val}',
                     # TODO needs validation
                     'default': '1024',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'How much RAM (in MB) do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
                 },
                 {
@@ -414,6 +422,7 @@ class Portunus():
                     'name': f'vm_cpus_{val}',
                     # TODO needs validation
                     'default': '1',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'How many CPUs do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
                 },
                 {
@@ -421,18 +430,20 @@ class Portunus():
                     'name': f'vm_os_{val}',
                     # TODO needs validation
                     'default': 'None',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'What is the OS variant (i.e. ubuntu16.04) for your VM(s) for network {self.info["network_name_"+str(val)]} (Use None if you don\'t know)?',
                 },
                 {
                     'type': 'confirm',
                     'name': f'vm_ssh_key_{val}',
                     'default': True,
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': 'Would you like to add your SSH key from GitHub to the VMs?',
                 },
                 {
                     'type': 'input',
                     'name': f'vm_ssh_username_{val}',
-                    'when': lambda answers: answers[f'vm_ssh_key_{val}'],
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and answers[f'vm_ssh_key_{val}'],
                     'message': 'What is your GitHub username?',
                 },
             ]
@@ -441,6 +452,9 @@ class Portunus():
                 self.info.update(answers)
             else:
                 sys.exit(0)
+
+            if answers[f'num_vms_{val}'] == 0:
+                return
 
             qcow2 = ''
             if f'vm_image_{val}' in answers and answers[f'vm_image_{val}']:
