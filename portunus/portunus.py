@@ -22,7 +22,10 @@ from portunus.validators import NumberValidator
 from portunus.validators import PortValidator
 
 
-logging.basicConfig(level=logging.INFO)
+level_int = {'CRITICAL': 50, 'ERROR': 40, 'WARNING': 30, 'INFO': 20,
+             'DEBUG': 10}
+level = level_int.get(os.getenv('LOGLEVEL', 'ERROR').upper(), 0)
+logging.basicConfig(level=level)
 
 
 class Portunus():
@@ -78,7 +81,7 @@ class Portunus():
                 return_code = process.poll()
                 if return_code is not None:
                     for output in process.stdout.readlines():
-                        logging.info(output.strip())
+                        logging.debug(output.strip())
                     break
 
         if change_dir:
@@ -158,7 +161,7 @@ class Portunus():
                 'type': 'confirm',
                 'name': f'network_dhcp_{val}',
                 'default': 'True',
-                'when': lambda answers: not answers['network_exist'],
+                'when': lambda answers: not answers[f'network_mode_{val}'] and not answers['network_exist'],
                 'message': f'Do you want the {self.p.ordinal(val)} network to use DHCP (can not be used with NAT)?',
             },
             {
@@ -178,7 +181,7 @@ class Portunus():
             {
                 'type': 'checkbox',
                 'name': 'network_ip_options',
-                'when': lambda answers: not answers['network_exist'],
+                'when': self.info['network_exist'],
                 'message': f'What IP options do you want to specify for the {self.p.ordinal(val)} network?',
                 'choices': [
                     {'name': 'Specify Subnet'},
@@ -189,6 +192,7 @@ class Portunus():
         ]
 
     def get_network_info(self, val, selections):
+        network_opt_answers = {}
         answers = self.execute_prompt(self.network_q_set_1(val))
         if answers:
             self.info.update(answers)
@@ -198,17 +202,20 @@ class Portunus():
             network_mode = 'nat' if self.info[f'network_mode_{val}'] else 'flat'
             create_network = ['docker', 'network', 'create', '--internal', '-d',
                               'ovs', '-o', f'ovs.bridge.mode={network_mode}']
-            network_opt_answers = answers['network_options']
-            if not self.info[f'network_dhcp_{val}']:
+            if 'network_options' in answers and answers['network_options']:
+                network_opt_answers = answers['network_options']
+            if f'network_dhcp_{val}' in self.info and self.info[f'network_dhcp_{val}']:
+                create_network += ['--ipam-driver',
+                                   'null', '-o', 'ovs.bridge.dhcp=true']
+            else:
                 answers = self.execute_prompt(self.network_q_set_2(val))
                 if answers:
                     self.info.update(answers)
-                    network_opt_answers.update(self.info['network_ip_options'])
+                    if 'network_ip_options' in self.info and self.info['network_ip_options']:
+                        network_opt_answers.update(
+                            self.info['network_ip_options'])
                 else:
                     sys.exit(0)
-            else:
-                create_network += ['--ipam-driver',
-                                   'null', '-o', 'ovs.bridge.dhcp=true']
             network_questions = []
             network_questions.append(
                 {
@@ -329,12 +336,13 @@ class Portunus():
                     'type': 'confirm',
                     'name': f'container_ssh_key_{val}',
                     'default': True,
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0,
                     'message': 'Would you like to add your SSH key from GitHub to the containers?',
                 },
                 {
                     'type': 'input',
                     'name': f'container_ssh_username_{val}',
-                    'when': lambda answers: answers[f'container_ssh_key_{val}'],
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0 and answers[f'container_ssh_key_{val}'],
                     'message': 'What is your GitHub username?',
                 },
             ]
@@ -375,6 +383,7 @@ class Portunus():
                     'type': 'confirm',
                     'name': f'vm_image_{val}',
                     'default': False,
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'Do you already have an image locally you want to use for network {self.info["network_name_"+str(val)]}?',
                 },
                 {
@@ -382,17 +391,18 @@ class Portunus():
                     'name': f'local_image_{val}',
                     'validate': ImageValidator,
                     'message': 'What is the path to the image you wish to use?',
-                    'when': lambda answers: answers[f'vm_image_{val}']
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and answers[f'vm_image_{val}']
                 },
                 {
                     'type': 'input',
                     'name': f'remote_image_{val}',
                     'message': 'What is the URL to the image you wish to use?',
-                    'when': lambda answers: not answers[f'vm_image_{val}']
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and not answers[f'vm_image_{val}']
                 },
                 {
                     'type': 'input',
                     'name': f'vm_basename_{val}',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'What basename do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
                 },
                 {
@@ -400,6 +410,7 @@ class Portunus():
                     'name': f'vm_imagesize_{val}',
                     # TODO needs validation
                     'default': '5G',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'What size disk do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
                 },
                 {
@@ -407,6 +418,7 @@ class Portunus():
                     'name': f'vm_ramsize_{val}',
                     # TODO needs validation
                     'default': '1024',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'How much RAM (in MB) do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
                 },
                 {
@@ -414,6 +426,7 @@ class Portunus():
                     'name': f'vm_cpus_{val}',
                     # TODO needs validation
                     'default': '1',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'How many CPUs do you want for your VM(s) for network {self.info["network_name_"+str(val)]}?',
                 },
                 {
@@ -421,18 +434,20 @@ class Portunus():
                     'name': f'vm_os_{val}',
                     # TODO needs validation
                     'default': 'None',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': f'What is the OS variant (i.e. ubuntu16.04) for your VM(s) for network {self.info["network_name_"+str(val)]} (Use None if you don\'t know)?',
                 },
                 {
                     'type': 'confirm',
                     'name': f'vm_ssh_key_{val}',
                     'default': True,
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
                     'message': 'Would you like to add your SSH key from GitHub to the VMs?',
                 },
                 {
                     'type': 'input',
                     'name': f'vm_ssh_username_{val}',
-                    'when': lambda answers: answers[f'vm_ssh_key_{val}'],
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and answers[f'vm_ssh_key_{val}'],
                     'message': 'What is your GitHub username?',
                 },
             ]
@@ -441,6 +456,9 @@ class Portunus():
                 self.info.update(answers)
             else:
                 sys.exit(0)
+
+            if answers[f'num_vms_{val}'] == 0:
+                return
 
             qcow2 = ''
             if f'vm_image_{val}' in answers and answers[f'vm_image_{val}']:
@@ -615,6 +633,40 @@ users:
                         container_name = answer.split()[0]
                         c = client.containers.get(container_name)
                         c.remove(force=True)
+
+        if 'vms' in selections:
+            vm_choices = []
+            for network in networks:
+                bridge = 'ovsbr-'+network.id[:5]
+                vms = subprocess.check_output(
+                    'virsh list --all --name', shell=True).decode('utf-8').split('\n')
+                for vm in vms:
+                    if vm:
+                        vm_net = subprocess.check_output(
+                            f'virsh domiflist {vm}', shell=True).decode('utf-8')
+                        if bridge in vm_net:
+                            vm_choices.append(
+                                {'name': f'{vm} ({network.name})'})
+            if vm_choices:
+                question = [
+                    {
+                        'type': 'checkbox',
+                        'name': 'cleanup_vms',
+                        'message': 'Which VMs would you like to remove?',
+                        'choices': vm_choices,
+                    },
+                ]
+
+                answers = self.execute_prompt(question)
+                if 'cleanup_vms' in answers:
+                    answers = answers['cleanup_vms']
+                    for answer in answers:
+                        vm = answer.split()[0]
+                        self.simple_command(f'virsh destroy {vm}')
+                        self.simple_command(f'virsh undefine {vm}')
+                        self.simple_command(
+                            f'sudo rm -rf /var/lib/libvirt/images/{vm}')
+
         vm_networks = {}
         if 'networks' in selections:
             network_choices = []
@@ -667,40 +719,10 @@ users:
                             c.remove(force=True)
                         n = client.networks.get(network_name)
                         n.remove()
-        if 'vms' in selections:
-            vm_choices = []
-            for network in networks:
-                bridge = 'ovsbr-'+network.id[:5]
-                vms = subprocess.check_output(
-                    'virsh list --all --name', shell=True).decode('utf-8').split('\n')
-                for vm in vms:
-                    if vm:
-                        vm_net = subprocess.check_output(
-                            f'virsh domiflist {vm}', shell=True).decode('utf-8')
-                        if bridge in vm_net:
-                            vm_choices.append(
-                                {'name': f'{vm} ({network.name})'})
-            if vm_choices:
-                question = [
-                    {
-                        'type': 'checkbox',
-                        'name': 'cleanup_vms',
-                        'message': 'Which VMs would you like to remove?',
-                        'choices': vm_choices,
-                    },
-                ]
-
-                answers = self.execute_prompt(question)
-                if 'cleanup_vms' in answers:
-                    answers = answers['cleanup_vms']
-                    for answer in answers:
-                        vm = answer.split()[0]
-                        self.simple_command(f'virsh destroy {vm}')
-                        self.simple_command(f'virsh undefine {vm}')
-                        self.simple_command(
-                            f'sudo rm -rf /var/lib/libvirt/images/{vm}')
 
         # TODO ovs/dovesnap
+        if 'portunus' in selections:
+            pass
         return
 
     def install_info(self, selections):
@@ -752,17 +774,32 @@ users:
                 'validate': PortValidator,
             },
             {
+                'type': 'input',
+                'name': 'frpc_ip',
+                'validate': IPValidator,
+                'when': lambda answers: not answers['faucet_install'],
+                'default': lambda answers: answers['faucet_ip'],
+                'message': 'What is the IP of the FaucetConfRPC server you\'d like to connect to?',
+            },
+            {
+                'type': 'input',
+                'name': 'mirror_out',
+                'default': 'eth0',
+                'message': 'What interface would you like to use for mirroring packets out of this server?',
+            },
+            {
+                'type': 'input',
+                'name': 'mirror_in',
+                'default': 'eth1',
+                'message': 'What interface would you like to use for mirroring packets in from other portunus servers? (Optional, leave blank if none)',
+            },
+            {
                 'type': 'confirm',
                 'name': f'gauge_install',
                 'default': True,
                 'when': lambda answers: not answers['faucet_install'],
                 'message': 'Is Gauge being used?',
             },
-            # TODO ask about stacking interfaces
-            # TODO ask about stack mirror interface
-            # TODO ask about faucetconfrpc ip address
-            # TODO ask about mirror out interface
-            # TODO ask about mirror in interface
         ]
         answers = self.execute_prompt(install_questions)
         if answers:
@@ -803,12 +840,16 @@ users:
         else:
             stack_ofcontrollers = 'STACK_OFCONTROLLERS=tcp:' + \
                 self.info['faucet_ip']+':'+self.info['faucet_port']
-            faucetconfrpc_server = 'FAUCETCONFRPC_IP='+self.info['faucet_ip']
+            faucetconfrpc_server = 'FAUCETCONFRPC_IP='+self.info['frpc_ip']
             if self.info['gauge_install']:
                 stack_ofcontrollers += ',tcp:' + \
                     self.info['gauge_ip']+':'+self.info['gauge_port']
         if self.info['monitoring_install']:
             dovesnap_compose_files += ['-f', 'docker-compose-monitoring.yml']
+        if self.info['mirror_in'] != '':
+            env_vars.append(f'MIRROR_BRIDGE_IN={self.info["mirror_in"]}')
+        if self.info['mirror_out'] != '':
+            env_vars.append(f'MIRROR_BRIDGE_OUT={self.info["mirror_out"]}')
         env_vars.append(stack_ofcontrollers)
         env_vars.append(faucetconfrpc_server)
         commands = [

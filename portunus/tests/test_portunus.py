@@ -75,7 +75,7 @@ def test_install():
 
         @staticmethod
         def execute_prompt(questions):
-            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port': '6653', 'gauge_ip': '192.168.1.1', 'gauge_port': '6654', 'dovesnap_path': 'foo', 'ovs_install': False, 'ovs_path': 'foo', 'faucet_install': False, 'monitoring_install': False, 'gauge_install': True}
+            return {'network_exist': False, 'gauge_1': True, 'network_name_1': 'foo', 'faucet_ip': '192.168.1.1', 'network_mode_1': 'nat', 'network_options': {'Specify Subnet': True}, 'faucet_port': '6653', 'gauge_ip': '192.168.1.1', 'gauge_port': '6654', 'dovesnap_path': 'foo', 'ovs_install': False, 'ovs_path': 'foo', 'faucet_install': False, 'monitoring_install': False, 'gauge_install': True, 'frpc_ip': '192.168.1.1', 'mirror_in': 'eth1', 'mirror_out': 'eth0'}
 
     mock_portunus = MockPortunus()
     mock_portunus.install_info({})
