@@ -202,16 +202,16 @@ class Portunus():
             create_network = ['docker', 'network', 'create', '--internal', '-d',
                               'ovs', '-o', f'ovs.bridge.mode={network_mode}']
             network_opt_answers = answers['network_options']
-            if not self.info[f'network_dhcp_{val}']:
+            if f'network_dhcp_{val}' in self.info and self.info[f'network_dhcp_{val}']:
+                create_network += ['--ipam-driver',
+                                   'null', '-o', 'ovs.bridge.dhcp=true']
+            else:
                 answers = self.execute_prompt(self.network_q_set_2(val))
                 if answers:
                     self.info.update(answers)
                     network_opt_answers.update(self.info['network_ip_options'])
                 else:
                     sys.exit(0)
-            else:
-                create_network += ['--ipam-driver',
-                                   'null', '-o', 'ovs.bridge.dhcp=true']
             network_questions = []
             network_questions.append(
                 {
