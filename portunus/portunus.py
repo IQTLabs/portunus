@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import argparse
 import logging
 import os
 import subprocess
@@ -929,23 +930,31 @@ users:
         ]
 
     def main(self):
-        answers = self.execute_prompt(self.main_questions())
-        actions = {}
-        action_dict = {
-            'cleanup': self.cleanup_info,
-            'install': self.install_info,
-            'start': self.start_info
-        }
-        if 'intro' in answers:
-            answers = answers['intro']
-            for answer in answers:
-                action, selection = answer.lower().split()
-                if action not in actions:
-                    actions[action] = []
-                actions[action].append(selection)
-            action_order = []
-            for action in actions:
-                action_order.append(action)
-            action_order.sort()
-            for action in action_order:
-                action_dict[action](actions[action])
+        parser = argparse.ArgumentParser(
+            description='Portunus - A tool for creating multi-tenant environments to run experiments in')
+        parser.add_argument('--info', '-i', action='store_true',
+                            help='Show info about the Portunus environment')
+        args = parser.parse_args()
+        if args.info:
+            print('To be implemnented')
+        else:
+            answers = self.execute_prompt(self.main_questions())
+            actions = {}
+            action_dict = {
+                'cleanup': self.cleanup_info,
+                'install': self.install_info,
+                'start': self.start_info
+            }
+            if 'intro' in answers:
+                answers = answers['intro']
+                for answer in answers:
+                    action, selection = answer.lower().split()
+                    if action not in actions:
+                        actions[action] = []
+                    actions[action].append(selection)
+                action_order = []
+                for action in actions:
+                    action_order.append(action)
+                action_order.sort()
+                for action in action_order:
+                    action_dict[action](actions[action])
