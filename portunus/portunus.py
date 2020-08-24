@@ -701,6 +701,8 @@ users:
                             f'sudo rm -rf /var/lib/libvirt/images/{vm}')
 
         # TODO ovs/dovesnap
+        if 'portunus' in selections:
+            pass
         return
 
     def install_info(self, selections):
@@ -752,17 +754,32 @@ users:
                 'validate': PortValidator,
             },
             {
+                'type': 'input',
+                'name': 'frpc_ip',
+                'validate': IPValidator,
+                'when': lambda answers: not answers['faucet_install'],
+                'default': answers['faucet_ip'],
+                'message': 'What is the IP of the FaucetConfRPC server you\'d like to connect to?',
+            },
+            {
+                'type': 'input',
+                'name': 'mirror_out',
+                'default': 'eth0',
+                'message': 'What interface would you like to use for mirroring packets out of this server?',
+            },
+            {
+                'type': 'input',
+                'name': 'mirror_in',
+                'default': 'eth1',
+                'message': 'What interface would you like to use for mirroring packets in from other portunus servers? (Optional, leave blank if none)',
+            },
+            {
                 'type': 'confirm',
                 'name': f'gauge_install',
                 'default': True,
                 'when': lambda answers: not answers['faucet_install'],
                 'message': 'Is Gauge being used?',
             },
-            # TODO ask about stacking interfaces
-            # TODO ask about stack mirror interface
-            # TODO ask about faucetconfrpc ip address
-            # TODO ask about mirror out interface
-            # TODO ask about mirror in interface
         ]
         answers = self.execute_prompt(install_questions)
         if answers:
@@ -803,12 +820,16 @@ users:
         else:
             stack_ofcontrollers = 'STACK_OFCONTROLLERS=tcp:' + \
                 self.info['faucet_ip']+':'+self.info['faucet_port']
-            faucetconfrpc_server = 'FAUCETCONFRPC_IP='+self.info['faucet_ip']
+            faucetconfrpc_server = 'FAUCETCONFRPC_IP='+self.info['frpc_ip']
             if self.info['gauge_install']:
                 stack_ofcontrollers += ',tcp:' + \
                     self.info['gauge_ip']+':'+self.info['gauge_port']
         if self.info['monitoring_install']:
             dovesnap_compose_files += ['-f', 'docker-compose-monitoring.yml']
+        if self.info['mirror_in'] != '':
+            env_vars.append(f'MIRROR_BRIDGE_IN={self.info["mirror_in"]}')
+        if self.info['mirror_out'] != '':
+            env_vars.append(f'MIRROR_BRIDGE_OUT={self.info["mirror_out"]}')
         env_vars.append(stack_ofcontrollers)
         env_vars.append(faucetconfrpc_server)
         commands = [
