@@ -211,7 +211,7 @@ class Portunus():
                 answers = self.execute_prompt(self.network_q_set_2(val))
                 if answers:
                     self.info.update(answers)
-                    if 'network_ip_options' in self.info and self.info['network_ip_optionos']:
+                    if 'network_ip_options' in self.info and self.info['network_ip_options']:
                         network_opt_answers.update(
                             self.info['network_ip_options'])
                 else:
