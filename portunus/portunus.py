@@ -409,6 +409,7 @@ class Portunus():
                     client = FaucetConfRpcClient(self.info[f'frpc_key_{val}'], self.info[f'frpc_cert_{val}'],
                                                  self.info[f'frpc_ca_{val}'], self.info[f'frpc_server_{val}']+':'+self.info[f'frpc_port_{val}'])
                     acls = client.get_acl_names()
+                    acl_choices = []
                     for acl in acls.acl_name:
                         acl_choices.append(acl)
                     acl_question = [
