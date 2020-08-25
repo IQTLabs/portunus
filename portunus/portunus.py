@@ -432,7 +432,7 @@ class Portunus():
                         'Unable to get ACLs to apply them to container(s)')
 
             # start containers
-            for c_val in range(1, answers[f'num_containers_{val}']+1):
+            for c_val in range(1, self.info[f'num_containers_{val}']+1):
                 command = None
                 if f'container_ssh_username_{val}' in self.info:
                     command = 'bash -c "curl https://github.com/' + \
