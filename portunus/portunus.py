@@ -10,6 +10,7 @@ import time
 import docker
 import inflect
 import netifaces
+from faucetconfrpc.faucetconfrpc_client_lib import FaucetConfRpcClient
 from PyInquirer import prompt
 from PyInquirer import Separator
 from PyInquirer import style_from_dict
@@ -110,7 +111,7 @@ class Portunus():
             return ''
 
     @staticmethod
-    def start_container(name, image, network, command=None):
+    def start_container(name, image, network, command=None, labels={}, dhcp=False):
         try:
             client = docker.from_env()
             exists = client.containers.list(filters={'name': name})
@@ -120,9 +121,11 @@ class Portunus():
                 exists = client.containers.list(filters={'name': name})
             container = client.containers.run(image=image, network=network,
                                               name=name, remove=True,
-                                              detach=True)
+                                              detach=True,
+                                              labels=labels)
             if command:
-                time.sleep(30)
+                if dhcp:
+                    time.sleep(10)
                 container.exec_run(command)
             logging.info(f'Started {name}')
         except Exception as e:  # pragma: no cover
@@ -331,20 +334,69 @@ class Portunus():
                     'name': f'container_image_{val}',
                     'default': 'iqtlabs/ssh_server:latest',
                     'when': lambda answers: answers[f'num_containers_{val}'] > 0,
-                    'message': 'What image would you like to use for your containers?',
+                    'message': 'What image would you like to use for your container(s)?',
                 },
                 {
                     'type': 'confirm',
                     'name': f'container_ssh_key_{val}',
                     'default': True,
                     'when': lambda answers: answers[f'num_containers_{val}'] > 0,
-                    'message': 'Would you like to add your SSH key from GitHub to the containers?',
+                    'message': 'Would you like to add your SSH key from GitHub to the container(s)?',
                 },
                 {
                     'type': 'input',
                     'name': f'container_ssh_username_{val}',
                     'when': lambda answers: answers[f'num_containers_{val}'] > 0 and answers[f'container_ssh_key_{val}'],
                     'message': 'What is your GitHub username?',
+                },
+                {
+                    'type': 'confirm',
+                    'name': f'container_mirror_{val}',
+                    'default': True,
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0,
+                    'message': 'Would you like to mirror traffic from the container(s)?',
+                },
+                {
+                    'type': 'confirm',
+                    'name': f'container_acls_{val}',
+                    'default': False,
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0,
+                    'message': 'Would you like to apply any ACLs to the container(s)?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'frpc_server_{val}',
+                    'default': 'faucetconfrpc',
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0 and answers[f'container_acls_{val}'],
+                    'message': 'Where is the FaucetConfRPC server?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'frpc_port_{val}',
+                    'default': '59999',
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0 and answers[f'container_acls_{val}'],
+                    'message': 'What port is the FaucetConfRPC server using?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'frpc_key_{val}',
+                    'default': '/opt/faucetconfrpc/faucetconfrpc.key',
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0 and answers[f'container_acls_{val}'],
+                    'message': 'Where is the key file to connect to the FaucetConfRPC server?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'frpc_cert_{val}',
+                    'default': '/opt/faucetconfrpc/faucetconfrpc.crt',
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0 and answers[f'container_acls_{val}'],
+                    'message': 'Where is the cert file to connect to the FaucetConfRPC server?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'frpc_ca_{val}',
+                    'default': '/opt/faucetconfrpc/faucetconfrpc-ca.crt',
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0 and answers[f'container_acls_{val}'],
+                    'message': 'Where is the CA cert file to connect to the FaucetConfRPC server?',
                 },
             ]
             answers = self.execute_prompt(container_questions)
@@ -353,16 +405,54 @@ class Portunus():
             else:
                 sys.exit(0)
 
+            if f'container_acls_{val}' in self.info and self.info[f'container_acls_{val}']:
+                try:
+                    client = FaucetConfRpcClient(self.info[f'frpc_key_{val}'], self.info[f'frpc_cert_{val}'],
+                                                 self.info[f'frpc_ca_{val}'], self.info[f'frpc_server_{val}']+':'+self.info[f'frpc_port_{val}'])
+                    acls = client.get_acl_names()
+                    acl_choices = []
+                    for acl in acls.acl_name:
+                        acl_choices.append({'name': acl})
+                    acl_question = [
+                        {
+                            'type': 'checkbox',
+                            'name': f'container_acl_choices_{val}',
+                            'message': 'Which ACL(s) would you like to apply?',
+                            'choices': acl_choices,
+                        },
+                    ]
+                    answers = self.execute_prompt(acl_question)
+                    if answers:
+                        self.info.update(answers)
+                    else:
+                        sys.exit(0)
+                except Exception as err:
+                    logging.error(
+                        f'Unable to connect to the FaucetConfRPC server because: {err}')
+                    logging.error(
+                        'Unable to get ACLs to apply them to container(s)')
+
             # start containers
-            for c_val in range(1, answers[f'num_containers_{val}']+1):
+            for c_val in range(1, self.info[f'num_containers_{val}']+1):
                 command = None
                 if f'container_ssh_username_{val}' in self.info:
                     command = 'bash -c "curl https://github.com/' + \
                         self.info[f'container_ssh_username_{val}'] + \
                         '.keys >> ~/.ssh/authorized_keys"'
+                labels = {}
+                if f'container_mirror_{val}' in self.info and self.info[f'container_mirror_{val}']:
+                    labels['dovesnap.faucet.mirror'] = 'true'
+                if f'container_acl_choices_{val}' in self.info:
+                    acls = self.info[f'container_acl_choices_{val}']
+                    labels['dovesnap.faucet.portacl'] = ','.join(acls)
+                if f'network_dhcp_{val}' in self.info:
+                    dhcp = self.info[f'network_dhcp_{val}']
+                else:
+                    dhcp = False
                 self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
                                      self.info[f'container_image_{val}'],
-                                     self.info[f'network_name_{val}'], command=command)
+                                     self.info[f'network_name_{val}'],
+                                     command=command, labels=labels, dhcp=dhcp)
         if 'vms' in selections:
             commands = [
                 (['sudo', 'modprobe', 'kvm'], 'enabling KVM...'),
