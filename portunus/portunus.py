@@ -410,12 +410,9 @@ class Portunus():
                     client = FaucetConfRpcClient(self.info[f'frpc_key_{val}'], self.info[f'frpc_cert_{val}'],
                                                  self.info[f'frpc_ca_{val}'], self.info[f'frpc_server_{val}']+':'+self.info[f'frpc_port_{val}'])
                     acls = client.get_acl_names()
-                    logging.error(acls)
                     acl_choices = []
                     for acl in acls.acl_name:
-                        logging.error(f'hmm {acl}')
                         acl_choices.append({'name': acl})
-                    logging.error(acl_choices)
                     acl_question = [
                         {
                             'type': 'checkbox',
