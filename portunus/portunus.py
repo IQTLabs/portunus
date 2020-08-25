@@ -414,7 +414,7 @@ class Portunus():
                     acl_choices = []
                     for acl in acls.acl_name:
                         logging.error(f'hmm {acl}')
-                        acl_choices.append(acl)
+                        acl_choices.append({'name': acl})
                     logging.error(acl_choices)
                     acl_question = [
                         {
