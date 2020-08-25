@@ -359,9 +359,9 @@ class Portunus():
                 {
                     'type': 'confirm',
                     'name': f'container_acls_{val}',
-                    'default': True,
+                    'default': False,
                     'when': lambda answers: answers[f'num_containers_{val}'] > 0,
-                    'message': 'Would you like to apply an ACL to the container(s)?',
+                    'message': 'Would you like to apply any ACLs to the container(s)?',
                 },
                 {
                     'type': 'input',
@@ -415,9 +415,9 @@ class Portunus():
                         acl_choices.append(acl)
                     acl_question = [
                         {
-                            'type': 'list',
+                            'type': 'checkbox',
                             'name': f'container_acl_choices_{val}',
-                            'message': 'Which ACL would you like to apply?',
+                            'message': 'Which ACL(s) would you like to apply?',
                             'choices': acl_choices,
                         },
                     ]
@@ -443,8 +443,8 @@ class Portunus():
                 if f'container_mirror_{val}' in self.info and self.info[f'container_mirror_{val}']:
                     labels['dovesnap.faucet.mirror'] = 'true'
                 if f'container_acl_choices_{val}' in self.info:
-                    acl = self.info[f'container_acl_choices_{val}']
-                    labels['dovesnap.faucet.portacl'] = acl
+                    acls = self.info[f'container_acl_choices_{val}']
+                    labels['dovesnap.faucet.portacl'] = ','.join(acls)
                 if f'network_dhcp_{val}' in self.info:
                     dhcp = self.info[f'network_dhcp_{val}']
                 else:
