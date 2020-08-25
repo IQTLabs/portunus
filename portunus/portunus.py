@@ -111,7 +111,7 @@ class Portunus():
             return ''
 
     @staticmethod
-    def start_container(name, image, network, command=None, labels={}):
+    def start_container(name, image, network, command=None, labels={}, dhcp=True):
         try:
             client = docker.from_env()
             exists = client.containers.list(filters={'name': name})
@@ -124,7 +124,8 @@ class Portunus():
                                               detach=True,
                                               labels=labels)
             if command:
-                time.sleep(30)
+                if dhcp:
+                    time.sleep(30)
                 container.exec_run(command)
             logging.info(f'Started {name}')
         except Exception as e:  # pragma: no cover
@@ -444,10 +445,14 @@ class Portunus():
                 if f'container_acl_choices_{val}' in self.info:
                     acl = self.info[f'container_acl_choices_{val}']
                     labels['dovesnap.faucet.portacl'] = acl
+                if f'network_dhcp_{val}' in self.info:
+                    dhcp = self.info[f'network_dhcp_{val}']
+                else:
+                    dhcp = False
                 self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
                                      self.info[f'container_image_{val}'],
                                      self.info[f'network_name_{val}'],
-                                     command=command, labels=labels)
+                                     command=command, labels=labels, dhcp=dhcp)
         if 'vms' in selections:
             commands = [
                 (['sudo', 'modprobe', 'kvm'], 'enabling KVM...'),
