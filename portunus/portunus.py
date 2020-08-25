@@ -111,7 +111,7 @@ class Portunus():
             return ''
 
     @staticmethod
-    def start_container(name, image, network, command=None, labels={}, dhcp=True):
+    def start_container(name, image, network, command=None, labels={}, dhcp=False):
         try:
             client = docker.from_env()
             exists = client.containers.list(filters={'name': name})
