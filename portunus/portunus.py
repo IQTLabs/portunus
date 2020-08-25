@@ -125,7 +125,7 @@ class Portunus():
                                               labels=labels)
             if command:
                 if dhcp:
-                    time.sleep(30)
+                    time.sleep(10)
                 container.exec_run(command)
             logging.info(f'Started {name}')
         except Exception as e:  # pragma: no cover
