@@ -111,7 +111,7 @@ class Portunus():
             return ''
 
     @staticmethod
-    def start_container(name, image, network, command=None, environment=[]):
+    def start_container(name, image, network, command=None, labels={}):
         try:
             client = docker.from_env()
             exists = client.containers.list(filters={'name': name})
@@ -122,7 +122,7 @@ class Portunus():
             container = client.containers.run(image=image, network=network,
                                               name=name, remove=True,
                                               detach=True,
-                                              environment=environment)
+                                              labels=labels)
             if command:
                 time.sleep(30)
                 container.exec_run(command)
@@ -415,7 +415,7 @@ class Portunus():
                     acl_question = [
                         {
                             'type': 'list',
-                            'name': f'containers_acl_choices_{val}',
+                            'name': f'container_acl_choices_{val}',
                             'message': 'Which ACL would you like to apply?',
                             'choices': acl_choices,
                         },
@@ -438,16 +438,16 @@ class Portunus():
                     command = 'bash -c "curl https://github.com/' + \
                         self.info[f'container_ssh_username_{val}'] + \
                         '.keys >> ~/.ssh/authorized_keys"'
-                environment = []
+                labels = {}
                 if f'container_mirror_{val}' in self.info and self.info[f'container_mirror_{val}']:
-                    environment.append('dovesnap.faucet.mirror=true')
+                    labels['dovesnap.faucet.mirror'] = 'true'
                 if f'container_acl_choices_{val}' in self.info:
                     acl = self.info[f'container_acl_choices_{val}']
-                    environment.append(f'dovesnap.faucet.portacl={acl}')
+                    labels['dovesnap.faucet.portacl'] = acl
                 self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
                                      self.info[f'container_image_{val}'],
                                      self.info[f'network_name_{val}'],
-                                     command=command, environment=environment)
+                                     command=command, labels=labels)
         if 'vms' in selections:
             commands = [
                 (['sudo', 'modprobe', 'kvm'], 'enabling KVM...'),
