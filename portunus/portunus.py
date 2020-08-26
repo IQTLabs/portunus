@@ -165,7 +165,7 @@ class Portunus():
                 'type': 'confirm',
                 'name': f'network_dhcp_{val}',
                 'default': 'True',
-                'when': lambda answers: not answers[f'network_mode_{val}'] and not answers['network_exist'],
+                'when': lambda answers: not answers['network_exist'] and not answers[f'network_mode_{val}'],
                 'message': f'Do you want the {self.p.ordinal(val)} network to use DHCP (can not be used with NAT)?',
             },
             {
