@@ -961,8 +961,11 @@ users:
                                                 'dovesnap')], 'cleaning up dovesnap...'),
             (['sudo', 'git', 'clone', 'https://github.com/iqtlabs/dovesnap'],
              'cloning dovesnap...', self.info['dovesnap_path']),
-            (['sudo', 'touch', '/usr/local/var/run/openvswitch/db.sock']),
-            (['sudo', 'touch', '/etc/faucet/faucet.yaml']),
+            (['sudo', 'mkdir', '-p', '/usr/local/var/run/openvswitch'], 'ensuring openvswitch directory exists...'),
+            (['sudo', 'rm', '-rf', '/usr/local/var/run/openvswitch/db.sock'], 'cleaning up openvswitch db.sock...'),
+            (['sudo', 'touch', '/usr/local/var/run/openvswitch/db.sock'], 'touching openvswitch db.sock...'),
+            (['sudo', 'mkdir', '-p', '/etc/faucet'], 'ensuring faucet config directory exists...'),
+            (['sudo', 'touch', '/etc/faucet/faucet.yaml'], 'touching faucet.yaml'),
             (['sudo'] + env_vars + ['docker-compose'] + dovesnap_compose_files + ['up', '-d', '--build'], 'building dovesnap...',
              os.path.join(self.info['dovesnap_path'], 'dovesnap')),
         ]
