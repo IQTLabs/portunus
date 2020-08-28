@@ -774,7 +774,7 @@ users:
                         # apply ACLs
                         if f'vm_acl_choices_{val}' in self.info:
                             acls = ','.join(
-                                self.info[f'container_acl_choices_{val}'])
+                                self.info[f'vm_acl_choices_{val}'])
                             resp = client.set_port_acls(
                                 self.info[f'network_name_{val}'], int(of_port), acls)
                             logging.debug(f'Set ACLs response: {resp}')
