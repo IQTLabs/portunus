@@ -761,7 +761,7 @@ users:
                                                          self.info[f'frpc_cert_{val}'],
                                                          self.info[f'frpc_ca_{val}'],
                                                          self.info[f'frpc_server_{val}']+':'+self.info[f'frpc_port_{val}'])
-                            resp = client.add_mirror_port(
+                            resp = client.add_port_mirror(
                                 bridge, of_port, '99')
                             logging.debug(f'Add mirror response: {resp}')
                         except Exception as e:
