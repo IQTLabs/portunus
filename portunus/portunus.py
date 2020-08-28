@@ -729,6 +729,7 @@ users:
                       '--import',
                       '--network', f'bridge={bridge},virtualport_type=openvswitch',
                       '--noautoconsole'], 'create vm...'),
+                    # TODO TODO TODO this can be cause infinite loops, if this fails for any reason!!!!
                     # put ovs-vsctl back
                     (['sudo', 'mv', ovs_vsctl+'-orig', ovs_vsctl],
                      'moving ovs-vsctl-orig back to ovs-vsctl...'),
@@ -742,9 +743,9 @@ users:
                         sys.exit(1)
                 vm_name = answers[f'vm_basename_{val}']+f'-{vm}'
                 logging.info(f'Starting VM: {vm_name}')
-                # TODO apply acls and mirroring
-                if f'vm_mirror_{val}' in self.info and self.info[f'vm_mirror_{val}']:
+                if (f'vm_mirror_{val}' in self.info and self.info[f'vm_mirror_{val}']) or f'vm_acl_choices_{val}' in self.info:
                     of_port = None
+                    client = None
                     try:
                         vm_net = subprocess.check_output(
                             f'virsh domiflist {vm_name}', shell=True).decode('utf-8')
@@ -753,20 +754,30 @@ users:
                             f'sudo ovs-vsctl get Interface {vm_int} ofport', shell=True).decode('utf-8').strip()
                     except Exception as e:
                         logging.error(
-                            f'Unable to get the network interface for {vm_name} to apply mirroring because: {e}')
+                            f'Unable to get the network interface for {vm_name} to apply mirroring or ACLs because: {e}')
                     if of_port:
                         try:
-                            # TODO using default 99 lbport for mirror instead of checking 'ovs.bridge.lbport'
                             client = FaucetConfRpcClient(self.info[f'frpc_key_{val}'],
                                                          self.info[f'frpc_cert_{val}'],
                                                          self.info[f'frpc_ca_{val}'],
                                                          self.info[f'frpc_server_{val}']+':'+self.info[f'frpc_port_{val}'])
+                        except Exception as e:
+                            logging.error(
+                                f'Unable to apply mirroring or ACLs for {vm_name} because: {e}')
+                    if client is not None:
+                        # apply mirroring
+                        if f'vm_mirror_{val}' in self.info and self.info[f'vm_mirror_{val}']:
+                            # TODO using default 99 lbport for mirror instead of checking 'ovs.bridge.lbport'
                             resp = client.add_port_mirror(
                                 self.info[f'network_name_{val}'], int(of_port), 99)
                             logging.debug(f'Add mirror response: {resp}')
-                        except Exception as e:
-                            logging.error(
-                                f'Unable to apply mirroring for {vm_name} because: {e}')
+                        # apply ACLs
+                        if f'vm_acl_choices_{val}' in self.info:
+                            acls = ','.join(
+                                self.info[f'container_acl_choices_{val}'])
+                            resp = client.set_port_acls(
+                                self.info[f'network_name_{val}'], int(of_port), acls)
+                            logging.debug(f'Set ACLs response: {resp}')
 
             # remove data files
             rm_commands = [
