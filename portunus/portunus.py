@@ -616,9 +616,9 @@ class Portunus():
                             'choices': acl_choices,
                         },
                     ]
-                    answers = self.execute_prompt(acl_question)
-                    if answers:
-                        self.info.update(answers)
+                    acl_answer = self.execute_prompt(acl_question)
+                    if acl_answer:
+                        self.info.update(acl_answer)
                     else:
                         sys.exit(0)
                 except Exception as err:
