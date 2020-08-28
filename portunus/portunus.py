@@ -541,6 +541,55 @@ class Portunus():
                     'when': lambda answers: answers[f'num_vms_{val}'] > 0 and answers[f'vm_ssh_key_{val}'],
                     'message': 'What is your GitHub username?',
                 },
+                {
+                    'type': 'confirm',
+                    'name': f'vm_mirror_{val}',
+                    'default': True,
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
+                    'message': 'Would you like to mirror traffic from the vm(s)?',
+                },
+                {
+                    'type': 'confirm',
+                    'name': f'vm_acls_{val}',
+                    'default': False,
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0,
+                    'message': 'Would you like to apply any ACLs to the vm(s)?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'frpc_server_{val}',
+                    'default': 'faucetconfrpc',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and answers[f'vm_acls_{val}'] and f'frpc_server_{val}' not in self.info,
+                    'message': 'Where is the FaucetConfRPC server?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'frpc_port_{val}',
+                    'default': '59999',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and answers[f'vm_acls_{val}'] and f'frpc_port_{val}' not in self.info,
+                    'message': 'What port is the FaucetConfRPC server using?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'frpc_key_{val}',
+                    'default': '/opt/faucetconfrpc/faucetconfrpc.key',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and answers[f'vm_acls_{val}'] and f'frpc_key_{val}' not in self.info,
+                    'message': 'Where is the key file to connect to the FaucetConfRPC server?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'frpc_cert_{val}',
+                    'default': '/opt/faucetconfrpc/faucetconfrpc.crt',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and answers[f'vm_acls_{val}'] and f'frpc_cert_{val}' not in self.info,
+                    'message': 'Where is the cert file to connect to the FaucetConfRPC server?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'frpc_ca_{val}',
+                    'default': '/opt/faucetconfrpc/faucetconfrpc-ca.crt',
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and answers[f'vm_acls_{val}'] and f'frpc_ca_{val}' not in self.info,
+                    'message': 'Where is the CA cert file to connect to the FaucetConfRPC server?',
+                },
             ]
             answers = self.execute_prompt(vm_questions)
             if answers:
@@ -551,6 +600,32 @@ class Portunus():
             if answers[f'num_vms_{val}'] == 0:
                 return
 
+            if f'vm_acls_{val}' in self.info and self.info[f'vm_acls_{val}']:
+                try:
+                    client = FaucetConfRpcClient(self.info[f'frpc_key_{val}'], self.info[f'frpc_cert_{val}'],
+                                                 self.info[f'frpc_ca_{val}'], self.info[f'frpc_server_{val}']+':'+self.info[f'frpc_port_{val}'])
+                    acls = client.get_acl_names()
+                    acl_choices = []
+                    for acl in acls.acl_name:
+                        acl_choices.append({'name': acl})
+                    acl_question = [
+                        {
+                            'type': 'checkbox',
+                            'name': f'vm_acl_choices_{val}',
+                            'message': 'Which ACL(s) would you like to apply?',
+                            'choices': acl_choices,
+                        },
+                    ]
+                    answers = self.execute_prompt(acl_question)
+                    if answers:
+                        self.info.update(answers)
+                    else:
+                        sys.exit(0)
+                except Exception as err:
+                    logging.error(
+                        f'Unable to connect to the FaucetConfRPC server because: {err}')
+                    logging.error(
+                        'Unable to get ACLs to apply them to vm(s)')
             qcow2 = ''
             if f'vm_image_{val}' in answers and answers[f'vm_image_{val}']:
                 # copy existing image
@@ -665,8 +740,34 @@ users:
                         shell = command[2]
                     if self.execute_command(command[0], command[1], shell=shell) != 0:
                         sys.exit(1)
-                logging.info('Starting VM: ' +
-                             answers[f'vm_basename_{val}']+f'-{vm}')
+                vm_name = answers[f'vm_basename_{val}']+f'-{vm}'
+                logging.info(f'Starting VM: {vm_name}')
+                # TODO apply acls and mirroring
+                if f'vm_mirror_{val}' in self.info and self.info[f'vm_mirror_{val}']:
+                    of_port = None
+                    try:
+                        vm_net = subprocess.check_output(
+                            f'virsh domiflist {vm_name}', shell=True).decode('utf-8')
+                        vm_int = vm_net.split('\n')[2].split()[0]
+                        of_port = subprocess.check_output(
+                            f'sudo ovs-vsctl get Interface {vm_int} ofport', shell=True).decode('utf-8').strip()
+                    except Exception as e:
+                        logging.error(
+                            f'Unable to get the network interface for {vm_name} to apply mirroring because: {e}')
+                    if of_port:
+                        try:
+                            # TODO using default 99 lbport for mirror instead of checking 'ovs.bridge.lbport'
+                            client = FaucetConfRpcClient(self.info[f'frpc_key_{val}'],
+                                                         self.info[f'frpc_cert_{val}'],
+                                                         self.info[f'frpc_ca_{val}'],
+                                                         self.info[f'frpc_server_{val}']+':'+self.info[f'frpc_port_{val}'])
+                            resp = client.add_mirror_port(
+                                bridge, of_port, '99')
+                            logging.debug(f'Add mirror response: {resp}')
+                        except Exception as e:
+                            logging.error(
+                                f'Unable to apply mirroring for {vm_name} because: {e}')
+
             # remove data files
             rm_commands = [
                 (['rm', f'meta-data'], 'removing meta-data...'),
@@ -961,10 +1062,14 @@ users:
                                                 'dovesnap')], 'cleaning up dovesnap...'),
             (['sudo', 'git', 'clone', 'https://github.com/iqtlabs/dovesnap'],
              'cloning dovesnap...', self.info['dovesnap_path']),
-            (['sudo', 'mkdir', '-p', '/usr/local/var/run/openvswitch'], 'ensuring openvswitch directory exists...'),
-            (['sudo', 'rm', '-rf', '/usr/local/var/run/openvswitch/db.sock'], 'cleaning up openvswitch db.sock...'),
-            (['sudo', 'touch', '/usr/local/var/run/openvswitch/db.sock'], 'touching openvswitch db.sock...'),
-            (['sudo', 'mkdir', '-p', '/etc/faucet'], 'ensuring faucet config directory exists...'),
+            (['sudo', 'mkdir', '-p', '/usr/local/var/run/openvswitch'],
+             'ensuring openvswitch directory exists...'),
+            (['sudo', 'rm', '-rf', '/usr/local/var/run/openvswitch/db.sock'],
+             'cleaning up openvswitch db.sock...'),
+            (['sudo', 'touch', '/usr/local/var/run/openvswitch/db.sock'],
+             'touching openvswitch db.sock...'),
+            (['sudo', 'mkdir', '-p', '/etc/faucet'],
+             'ensuring faucet config directory exists...'),
             (['sudo', 'touch', '/etc/faucet/faucet.yaml'], 'touching faucet.yaml'),
             (['sudo'] + env_vars + ['docker-compose'] + dovesnap_compose_files + ['up', '-d', '--build'], 'building dovesnap...',
              os.path.join(self.info['dovesnap_path'], 'dovesnap')),
