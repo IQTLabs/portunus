@@ -559,7 +559,7 @@ class Portunus():
                     'type': 'input',
                     'name': f'frpc_server_{val}',
                     'default': 'faucetconfrpc',
-                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and answers[f'vm_acls_{val}'] and f'frpc_server_{val}' not in self.info,
+                    'when': lambda answers: answers[f'num_vms_{val}'] > 0 and (answers[f'vm_mirror_{val}'] or answers[f'vm_acls_{val}']) and f'frpc_server_{val}' not in self.info,
                     'message': 'Where is the FaucetConfRPC server?',
                 },
                 {
