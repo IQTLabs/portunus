@@ -1143,11 +1143,16 @@ users:
     def main(self):
         parser = argparse.ArgumentParser(
             description='Portunus - A tool for creating multi-tenant environments to run experiments in')
-        parser.add_argument('--info', '-i', action='store_true',
-                            help='Show info about the Portunus environment')
+        parser.add_argument('--viz', '-z', action='store_true',
+                            help='Show serve up current state of the Portunus environment as a diagram')
         args = parser.parse_args()
-        if args.info:
-            print('To be implemented')
+        if args.viz:
+            self.simple_command('mkdir -p viz_output')
+            path = os.getcwd()
+            os.chdir('viz_output')
+            self.simple_command('python3 /opt/dovesnap/graph_dovesnap/graph_dovesnap.py')
+            self.simple_command('python3 -m http.server')
+            os.chdir(path)
         else:
             answers = self.execute_prompt(self.main_questions())
             actions = {}
