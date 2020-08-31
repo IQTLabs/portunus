@@ -1147,7 +1147,7 @@ users:
                             help='Show info about the Portunus environment')
         args = parser.parse_args()
         if args.info:
-            print('To be implemnented')
+            print('To be implemented')
         else:
             answers = self.execute_prompt(self.main_questions())
             actions = {}
