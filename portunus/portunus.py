@@ -1145,12 +1145,20 @@ users:
             description='Portunus - A tool for creating multi-tenant environments to run experiments in')
         parser.add_argument('--viz', '-z', action='store_true',
                             help='Show serve up current state of the Portunus environment as a diagram')
+        parser.add_argument('--version', '-V', action='store_true',
+                            help='Show version')
         args = parser.parse_args()
+        if args.version:
+            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'VERSION'), 'r') as f:
+                print(f.read().strip())
+            sys.exit()
+
         if args.viz:
             self.simple_command('mkdir -p viz_output')
             path = os.getcwd()
             os.chdir('viz_output')
-            self.simple_command('python3 /opt/dovesnap/graph_dovesnap/graph_dovesnap.py')
+            self.simple_command(
+                'python3 /opt/dovesnap/graph_dovesnap/graph_dovesnap.py')
             self.simple_command('python3 -m http.server')
             os.chdir(path)
         else:

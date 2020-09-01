@@ -2,5 +2,5 @@ include *.md
 include LICENSE
 include requirements.txt
 include bin/portunus
-include VERSION
+include portunus/VERSION
 recursive-include portunus *.py

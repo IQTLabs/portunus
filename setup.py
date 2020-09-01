@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='portunus',
-    version=open('VERSION', 'r').read().strip(),
+    version=open('portunus/VERSION', 'r').read().strip(),
     include_package_data=True,
     packages=find_packages(),
     install_requires=open('requirements.txt', 'r').read().splitlines(),
