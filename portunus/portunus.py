@@ -1144,7 +1144,7 @@ users:
         parser = argparse.ArgumentParser(
             description='Portunus - A tool for creating multi-tenant environments to run experiments in')
         parser.add_argument('--viz', '-z', action='store_true',
-                            help='Show serve up current state of the Portunus environment as a diagram')
+                            help='Serve up current state of the Portunus environment as a diagram')
         parser.add_argument('--version', '-V', action='store_true',
                             help='Show version')
         args = parser.parse_args()
