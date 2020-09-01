@@ -3,6 +3,7 @@ iface lo inet loopback
 
 auto enp4s0
 iface enp4s0 inet dhcp
+post-up route add default gw 192.168.0.1 enp4s0
 
 allow-hotplug enp3s0
 iface enp3s0 inet manual
