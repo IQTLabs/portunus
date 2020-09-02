@@ -195,6 +195,19 @@ class Portunus():
             },
         ]
 
+    def get_ofcontrollers(self):
+        ofcontrollers = None
+        try:
+            client = docker.APIClient(base_url='unix://var/run/docker.sock')
+            info = client.inspect_container('dovesnap_plugin_1')
+            args = info['Args']
+            for arg in args:
+                if arg.startswith('--default_ofcontrollers='):
+                    ofcontrollers = arg.split('--default_ofcontrollers=')[1]
+        except Exception as e:
+            logging.error(f'Unable to get OF controllers because: {e}')
+        return ofcontrollers
+
     def get_network_info(self, val, selections):
         network_opt_answers = {}
         answers = self.execute_prompt(self.network_q_set_1(val))
@@ -312,6 +325,10 @@ class Portunus():
                 create_network += ['-o',
                                    f'ovs.bridge.add_ports={answers["network_nic_"+str(val)]}/{answers["network_nic_port_"+str(val)]}']
 
+            ofcontrollers = self.get_ofcontrollers()
+            if ofcontrollers:
+                create_network += ['-o',
+                                   f'ovs.bridge.controller={ofcontrollers}']
             create_network += [self.info[f'network_name_{val}']]
             commands.append((create_network, 'creating network...'))
 
@@ -413,19 +430,20 @@ class Portunus():
                     acl_choices = []
                     for acl in acls.acl_name:
                         acl_choices.append({'name': acl})
-                    acl_question = [
-                        {
-                            'type': 'checkbox',
-                            'name': f'container_acl_choices_{val}',
-                            'message': 'Which ACL(s) would you like to apply?',
-                            'choices': acl_choices,
-                        },
-                    ]
-                    answers = self.execute_prompt(acl_question)
-                    if answers:
-                        self.info.update(answers)
-                    else:
-                        sys.exit(0)
+                    if acl_choices:
+                        acl_question = [
+                            {
+                                'type': 'checkbox',
+                                'name': f'container_acl_choices_{val}',
+                                'message': 'Which ACL(s) would you like to apply?',
+                                'choices': acl_choices,
+                            },
+                        ]
+                        answers = self.execute_prompt(acl_question)
+                        if answers:
+                            self.info.update(answers)
+                        else:
+                            sys.exit(0)
                 except Exception as err:
                     logging.error(
                         f'Unable to connect to the FaucetConfRPC server because: {err}')
