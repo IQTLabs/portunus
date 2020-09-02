@@ -413,19 +413,20 @@ class Portunus():
                     acl_choices = []
                     for acl in acls.acl_name:
                         acl_choices.append({'name': acl})
-                    acl_question = [
-                        {
-                            'type': 'checkbox',
-                            'name': f'container_acl_choices_{val}',
-                            'message': 'Which ACL(s) would you like to apply?',
-                            'choices': acl_choices,
-                        },
-                    ]
-                    answers = self.execute_prompt(acl_question)
-                    if answers:
-                        self.info.update(answers)
-                    else:
-                        sys.exit(0)
+                    if acl_choices:
+                        acl_question = [
+                            {
+                                'type': 'checkbox',
+                                'name': f'container_acl_choices_{val}',
+                                'message': 'Which ACL(s) would you like to apply?',
+                                'choices': acl_choices,
+                            },
+                        ]
+                        answers = self.execute_prompt(acl_question)
+                        if answers:
+                            self.info.update(answers)
+                        else:
+                            sys.exit(0)
                 except Exception as err:
                     logging.error(
                         f'Unable to connect to the FaucetConfRPC server because: {err}')
