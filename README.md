@@ -1,6 +1,6 @@
 # Portunus
 
-> Create and manage multi-tenant environments through a user-friendly commandline interface.
+> Create and manage multi-tenant environments through a user-friendly command-line interface.
 
 Portunus allows a user to dynamically create networks that are connected to [Faucet](https://github.com/faucetsdn/faucet), an SDN controller.  These networks can be configured with a variety of options such as NAT, DHCP, VLANs, subnets, gateways, stack links, mirroring ports, and the ability to wire in physical interfaces into the virtual network. Each network can then have Docker containers, virtual machines, and even physical devices attached to it.
 
