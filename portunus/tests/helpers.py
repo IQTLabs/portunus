@@ -156,7 +156,7 @@ class SimplePty(PtyProcess):
         # inspired by pexpect/pty_spawn and  pexpect/expect.py expect_loop
         end_time = time.time() + self.timeout
         buf = ''
-        while (end_time - time.time()) > 0.0:
+        while end_time > time.time():
             # switch to nonblocking read
             reads, _, _ = select.select(
                 [self.fd], [], [], end_time - time.time())
