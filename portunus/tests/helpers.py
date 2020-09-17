@@ -176,6 +176,7 @@ class SimplePty(PtyProcess):
         print(repr(buf))  # debug ansi code handling
         print(repr(text))
         assert buf == text
+        print('got expected text %s' % text)
 
 
 def create_example_fixture(example):
