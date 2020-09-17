@@ -186,7 +186,7 @@ def create_example_fixture(example):
     """
     @pytest.fixture
     def example_app():
-        p = SimplePty.spawn(['python', example])
+        p = SimplePty.spawn(['python3', example])
         yield p
         # it takes some time to collect the coverage data
         # if the main process exits too early the coverage data is not available
