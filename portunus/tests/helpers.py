@@ -128,7 +128,7 @@ class SimplePty(PtyProcess):
     @classmethod
     def spawn(
             cls, argv, cwd=None, env=None, echo=False, preexec_fn=None,
-            dimensions=(24, 80), skip_cr=True, skip_ansi=True, timeout=1.0):
+            dimensions=(24, 80), skip_cr=True, skip_ansi=True, timeout=10.0):
         """
 
         :param argv:
