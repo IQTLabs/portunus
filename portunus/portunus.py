@@ -10,13 +10,13 @@ import time
 import docker
 import inflect
 import netifaces
-from faucetconfrpc.faucetconfrpc_client_lib import FaucetConfRpcClient
 from PyInquirer import prompt
 from PyInquirer import Separator
 from PyInquirer import style_from_dict
 from PyInquirer import Token
 
 from examples import custom_style_2
+from portunus.faucetrpc import get_faucetconfrpc
 from portunus.validators import DockerNetworkValidator
 from portunus.validators import ImageValidator
 from portunus.validators import IPValidator
@@ -424,8 +424,10 @@ class Portunus():
 
             if f'container_acls_{val}' in self.info and self.info[f'container_acls_{val}']:
                 try:
-                    client = FaucetConfRpcClient(self.info[f'frpc_key_{val}'], self.info[f'frpc_cert_{val}'],
-                                                 self.info[f'frpc_ca_{val}'], self.info[f'frpc_server_{val}']+':'+self.info[f'frpc_port_{val}'])
+                    client = get_faucetconfrpc(
+                        self.info[f'frpc_key_{val}'], self.info[f'frpc_cert_{val}'],
+                        self.info[f'frpc_ca_{val}'], self.info[f'frpc_server_{val}'],
+                        self.info[f'frpc_port_{val}'])
                     acls = client.get_acl_names()
                     acl_choices = []
                     for acl in acls.acl_name:
@@ -620,8 +622,10 @@ class Portunus():
 
             if f'vm_acls_{val}' in self.info and self.info[f'vm_acls_{val}']:
                 try:
-                    client = FaucetConfRpcClient(self.info[f'frpc_key_{val}'], self.info[f'frpc_cert_{val}'],
-                                                 self.info[f'frpc_ca_{val}'], self.info[f'frpc_server_{val}']+':'+self.info[f'frpc_port_{val}'])
+                    client = get_faucetconfrpc(
+                        self.info[f'frpc_key_{val}'], self.info[f'frpc_cert_{val}'],
+                        self.info[f'frpc_ca_{val}'], self.info[f'frpc_server_{val}'],
+                        self.info[f'frpc_port_{val}'])
                     acls = client.get_acl_names()
                     acl_choices = []
                     for acl in acls.acl_name:
@@ -775,10 +779,12 @@ users:
                             f'Unable to get the network interface for {vm_name} to apply mirroring or ACLs because: {e}')
                     if of_port:
                         try:
-                            client = FaucetConfRpcClient(self.info[f'frpc_key_{val}'],
-                                                         self.info[f'frpc_cert_{val}'],
-                                                         self.info[f'frpc_ca_{val}'],
-                                                         self.info[f'frpc_server_{val}']+':'+self.info[f'frpc_port_{val}'])
+                            client = get_faucetconfrpc(
+                                self.info[f'frpc_key_{val}'],
+                                self.info[f'frpc_cert_{val}'],
+                                self.info[f'frpc_ca_{val}'],
+                                self.info[f'frpc_server_{val}'],
+                                self.info[f'frpc_port_{val}'])
                         except Exception as e:
                             logging.error(
                                 f'Unable to apply mirroring or ACLs for {vm_name} because: {e}')

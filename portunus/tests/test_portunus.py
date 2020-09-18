@@ -28,10 +28,9 @@ def test_portunus_startup(portunus_app):
           - Cleanup Portunus (Not implemented yet)
            ---INSTALL---
           ○ Install Dependencies"""))
-    # pytype: disable=attribute-error
-    portunus_app.writeline(keys.SPACE)
-    portunus_app.writeline(keys.ENTER)
-    # pytype: enable=attribute-error
+    portunus_app.writeline(keys.SPACE)  # pytype: disable=attribute-error
+    portunus_app.writeline(keys.ENTER)  # pytype: disable=attribute-error
+    portunus_app.expect('? What do you want to do?  done\n')
 
 
 def test_network_q_set_1():
