@@ -167,6 +167,7 @@ class SimplePty(PtyProcess):
                     print('len: %d' % len(buf))
                     assert buf == text
                 if buf == text:
+                    print('got expected text %s' % text)
                     return
                 elif len(buf) >= len(text):  # pragma: no cover
                     break
@@ -176,7 +177,6 @@ class SimplePty(PtyProcess):
         print(repr(buf))  # debug ansi code handling
         print(repr(text))
         assert buf == text
-        print('got expected text %s' % text)
 
 
 def create_example_fixture(example):
