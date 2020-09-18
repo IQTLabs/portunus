@@ -128,7 +128,7 @@ class SimplePty(PtyProcess):
     @classmethod
     def spawn(
             cls, argv, cwd=None, env=None, echo=False, preexec_fn=None,
-            dimensions=(24, 80), skip_cr=True, skip_ansi=True, timeout=10.0):
+            dimensions=(24, 80), skip_cr=True, skip_ansi=True, timeout=1.0):
         """
 
         :param argv:
@@ -186,7 +186,7 @@ def create_example_fixture(example):
     """
     @pytest.fixture
     def example_app():
-        p = SimplePty.spawn(['python', example])
+        p = SimplePty.spawn(['python', example], timeout=2)
         yield p
         # it takes some time to collect the coverage data
         # if the main process exits too early the coverage data is not available
