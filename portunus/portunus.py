@@ -1169,9 +1169,7 @@ users:
         if args.version:
             with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'VERSION'), 'r') as f:
                 print(f.read().strip())
-            sys.exit()
-
-        if args.viz:
+        elif args.viz:
             self.simple_command('mkdir -p viz_output')
             path = os.getcwd()
             os.chdir('viz_output')
