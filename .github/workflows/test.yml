@@ -21,7 +21,7 @@ jobs:
         export PATH=/home/runner/.local/bin:$PATH && \
         pip3 install . && \
         PYTHONPATH=.:$PATH pytype -d import-error,pyi-error . && \
-        pytest -l -n auto -v --capture=sys --show-capture=all --cov=. --cov-report term-missing -c .coveragerc && coverage report && coverage xml
+        pytest -l -v --capture=sys --show-capture=all --cov=. --cov-report term-missing -c .coveragerc && coverage report && coverage xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1.0.6
       env:
