@@ -15,7 +15,7 @@ from portunus.tests.helpers import keys
 portunus_app = create_example_fixture('bin/portunus')
 
 
-def test_portunus(portunus_app):
+def test_portunus_startup(portunus_app):
     portunus_app.expect(textwrap.dedent("""\
         ? What do you want to do?  (<up>, <down> to move, <space> to select, <a> to togg
            ---START---
