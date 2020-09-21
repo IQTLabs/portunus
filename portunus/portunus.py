@@ -1180,6 +1180,8 @@ users:
             path = os.getcwd()
             os.chdir('viz_output')
             self.simple_command(
+                'pip3 install -r /opt/dovesnap/graph_dovesnap/requirements.txt')
+            self.simple_command(
                 'python3 /opt/dovesnap/graph_dovesnap/graph_dovesnap.py')
             self.simple_command('python3 -m http.server')
             os.chdir(path)
