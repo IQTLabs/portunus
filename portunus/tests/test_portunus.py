@@ -15,7 +15,7 @@ from portunus.tests.helpers import keys
 portunus_app = create_example_fixture('bin/portunus')
 
 
-def test_portunus(portunus_app):
+def test_portunus_startup(portunus_app):
     portunus_app.expect(textwrap.dedent("""\
         ? What do you want to do?  (<up>, <down> to move, <space> to select, <a> to togg
            ---START---
@@ -28,10 +28,9 @@ def test_portunus(portunus_app):
           - Cleanup Portunus (Not implemented yet)
            ---INSTALL---
           ○ Install Dependencies"""))
-    # pytype: disable=attribute-error
-    portunus_app.writeline(keys.SPACE)
-    portunus_app.writeline(keys.ENTER)
-    # pytype: enable=attribute-error
+    portunus_app.writeline(keys.SPACE)  # pytype: disable=attribute-error
+    portunus_app.writeline(keys.ENTER)  # pytype: disable=attribute-error
+    portunus_app.expect('? What do you want to do?  done\n')
 
 
 def test_network_q_set_1():
