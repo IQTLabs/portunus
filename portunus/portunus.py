@@ -492,7 +492,6 @@ class Portunus():
                     dhcp = False
                 volumes = {}
                 if f'use_volume_{val}' in self.info and self.info[f'use_volume_{val}']:
-                    volumes = {} 
                     volumes[self.info[f'volume_name_{val}']] = {'bind': f'mount_point_{val}', 'mode':'rw'}
 
                 self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
