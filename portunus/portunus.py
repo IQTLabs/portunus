@@ -80,7 +80,7 @@ class Portunus():
         if return_code == None:
             while True:
                 output = process.stdout.readline()
-                logging.info(output.strip())
+                logging.debug(output.strip())
                 return_code = process.poll()
                 if return_code is not None:
                     for output in process.stdout.readlines():
@@ -477,7 +477,7 @@ class Portunus():
             for c_val in range(1, self.info[f'num_containers_{val}']+1):
                 command = None
                 if f'container_ssh_username_{val}' in self.info:
-                    command = 'bash -c "curl https://github.com/' + \
+                    command = 'bash -c "curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 --retry-connrefused https://github.com/' + \
                         self.info[f'container_ssh_username_{val}'] + \
                         '.keys >> ~/.ssh/authorized_keys"'
                 labels = {}
@@ -1204,6 +1204,11 @@ users:
             self.simple_command('mkdir -p viz_output')
             path = os.getcwd()
             os.chdir('viz_output')
+            # TODO this path shouldn't be hardcoded
+            self.execute_command(
+                ['pip3', 'install', '-r',
+                    '/opt/dovesnap/graph_dovesnap/requirements.txt'],
+                'Ensuring dependencies are installed...')
             self.simple_command(
                 'python3 /opt/dovesnap/graph_dovesnap/graph_dovesnap.py')
             self.simple_command('python3 -m http.server')
