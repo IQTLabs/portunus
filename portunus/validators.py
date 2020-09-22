@@ -65,3 +65,13 @@ class PortValidator(Validator):
             raise ValidationError(
                 message='Please enter a number between 1-65535',
                 cursor_position=len(document.text))  # pragma: no cover
+
+class VolumeValidator(Validator):
+    def validate(self, document):
+        client = docker.from_env()
+        volumes = client.volumes.list(filters={'name': document.text})
+        if len(volumes) == 0 and not os.path.isdir(document.text):
+            raise ValidationError(
+                message='Please enter the name of a valid volme or'
+                ' a path to an existing directory',
+                cursor_position=len(document.text))  # pragma: no cover
