@@ -1,5 +1,5 @@
 docker==4.3.1
-faucetconfrpc==0.22.4
+faucetconfrpc==0.22.5
 inflect==4.1.0
 netifaces==0.10.9
 PyInquirer==1.0.3
