@@ -22,6 +22,7 @@ from portunus.validators import ImageValidator
 from portunus.validators import IPValidator
 from portunus.validators import NumberValidator
 from portunus.validators import PortValidator
+from portunus.validators import VolumeValidator
 
 
 level_int = {'CRITICAL': 50, 'ERROR': 40, 'WARNING': 30, 'INFO': 20,
@@ -111,7 +112,7 @@ class Portunus():
             return ''
 
     @staticmethod
-    def start_container(name, image, network, command=None, labels={}, dhcp=False):
+    def start_container(name, image, network, command=None, labels={}, volumes={}, dhcp=False):
         try:
             client = docker.from_env()
             exists = client.containers.list(filters={'name': name})
@@ -122,7 +123,8 @@ class Portunus():
             container = client.containers.run(image=image, network=network,
                                               name=name, remove=True,
                                               detach=True,
-                                              labels=labels)
+                                              labels=labels,
+                                              volumes=volumes)
             if command:
                 if dhcp:
                     time.sleep(10)
@@ -355,6 +357,25 @@ class Portunus():
                 },
                 {
                     'type': 'confirm',
+                    'name': f'use_volume_{val}',
+                    'default': False,
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0,
+                    'message': 'Would you like to mount a volume in the container(s)?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'volume_name_{val}',
+                    'when': lambda answers: answers[f'use_volume_{val}'] > 0 and answers[f'use_volume_{val}'],
+                    'message': 'What volume or path would you like to use for your container(s)?',
+                },
+                {
+                    'type': 'input',
+                    'name': f'mount_point_{val}',
+                    'when': lambda answers: answers[f'use_volume_{val}'] > 0 and answers[f'use_volume_{val}'],
+                    'message': 'Where should the volume be mounted within your container(s)?',
+                },
+                {
+                    'type': 'confirm',
                     'name': f'container_ssh_key_{val}',
                     'default': True,
                     'when': lambda answers: answers[f'num_containers_{val}'] > 0,
@@ -469,10 +490,14 @@ class Portunus():
                     dhcp = self.info[f'network_dhcp_{val}']
                 else:
                     dhcp = False
+                volumes = {}
+                if f'use_volume_{val}' in self.info and self.info[f'use_volume_{val}']:
+                    volumes[self.info[f'volume_name_{val}']] = {'bind': f'mount_point_{val}', 'mode':'rw'}
+
                 self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
                                      self.info[f'container_image_{val}'],
                                      self.info[f'network_name_{val}'],
-                                     command=command, labels=labels, dhcp=dhcp)
+                                     command=command, labels=labels, volumes=volumes, dhcp=dhcp)
         if 'vms' in selections:
             commands = [
                 (['sudo', 'modprobe', 'kvm'], 'enabling KVM...'),

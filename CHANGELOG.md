@@ -1,3 +1,9 @@
+# v0.2.2 (2020-10-09)
+
+- Fix github key retry handling
+- Add option to provide volume to containers
+- Update faucetconfrpc, pytest
+
 # v0.2.1 (2020-09-04)
 
 - Show OF controllers in graphviz
