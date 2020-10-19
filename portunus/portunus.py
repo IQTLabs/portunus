@@ -492,7 +492,8 @@ class Portunus():
                     dhcp = False
                 volumes = {}
                 if f'use_volume_{val}' in self.info and self.info[f'use_volume_{val}']:
-                    volumes[self.info[f'volume_name_{val}']] = {'bind': f'mount_point_{val}', 'mode':'rw'}
+                    volumes[self.info[f'volume_name_{val}']] = {
+                        'bind': f'mount_point_{val}', 'mode': 'rw'}
 
                 self.start_container('portunus_'+self.info[f'network_name_{val}']+f'_{c_val}',
                                      self.info[f'container_image_{val}'],
@@ -972,9 +973,14 @@ users:
                         n = client.networks.get(network_name)
                         n.remove()
 
-        # TODO ovs/dovesnap
         if 'portunus' in selections:
-            pass
+            try:
+                names = ['dovesnap_plugin_1', 'dovesnap_ovs_1']
+                for container_name in names:
+                    c = client.containers.get(container_name)
+                    c.remove(force=True)
+            except Exception as e:
+                logging.error(f'Unable to cleanup Portunus because {e}')
         return
 
     def install_info(self, selections):
@@ -1181,8 +1187,7 @@ users:
                     {'name': 'Cleanup Containers'},
                     {'name': 'Cleanup VMs'},
                     {'name': 'Cleanup Networks'},
-                    {'name': 'Cleanup Portunus',
-                     'disabled': 'Not implemented yet'},
+                    {'name': 'Cleanup Portunus (remove containers)'},
                     Separator(' ---INSTALL--- '),
                     {'name': 'Install Dependencies'},
                 ],
