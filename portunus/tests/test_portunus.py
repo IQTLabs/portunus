@@ -25,7 +25,7 @@ def test_portunus_startup(portunus_app):
           ○ Cleanup Containers
           ○ Cleanup VMs
           ○ Cleanup Networks
-          - Cleanup Portunus (Not implemented yet)
+          - Cleanup Portunus
            ---INSTALL---
           ○ Install Dependencies"""))
     portunus_app.writeline(keys.SPACE)  # pytype: disable=attribute-error
