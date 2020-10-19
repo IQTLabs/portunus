@@ -1187,7 +1187,7 @@ users:
                     {'name': 'Cleanup Containers'},
                     {'name': 'Cleanup VMs'},
                     {'name': 'Cleanup Networks'},
-                    {'name': 'Cleanup Portunus'},
+                    {'name': 'Cleanup Portunus (remove containers)'},
                     Separator(' ---INSTALL--- '),
                     {'name': 'Install Dependencies'},
                 ],
