@@ -224,7 +224,7 @@ class Portunus():
             if special_nic in nics:
                 nics.remove(special_nic)
         try:
-            ovs_output = self.output_command('ovs-vsctl show')
+            ovs_output = self.output_command('sudo ovs-vsctl show')
             used_nics = []
             for nic in nics:
                 if nic in ovs_output:
