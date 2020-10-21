@@ -1,6 +1,6 @@
 docker==4.3.1
 dovesnap==0.10.0
-faucetconfrpc==0.22.6
+faucetconfrpc==0.22.8
 inflect==4.1.0
 netifaces==0.10.9
 PyInquirer==1.0.3
