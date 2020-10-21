@@ -39,6 +39,15 @@ class ImageValidator(Validator):
                 cursor_position=len(document.text))  # pragma: no cover
 
 
+class NICValidator(Validator):
+    def validate(self, document):
+        nics = os.listdir('/sys/class/net/')
+        if document.text not in nics:
+            raise ValidationError(
+                message='Please enter a NIC that exists',
+                cursor_position=len(document.text))  # pragma: no cover
+
+
 class NumberValidator(Validator):
     def validate(self, document):
         try:
@@ -65,6 +74,7 @@ class PortValidator(Validator):
             raise ValidationError(
                 message='Please enter a number between 1-65535',
                 cursor_position=len(document.text))  # pragma: no cover
+
 
 class VolumeValidator(Validator):
     def validate(self, document):
