@@ -20,6 +20,7 @@ from portunus.faucetrpc import get_faucetconfrpc
 from portunus.validators import DockerNetworkValidator
 from portunus.validators import ImageValidator
 from portunus.validators import IPValidator
+from portunus.validators import NICValidator
 from portunus.validators import NumberValidator
 from portunus.validators import PortValidator
 from portunus.validators import VolumeValidator
@@ -210,6 +211,30 @@ class Portunus():
             logging.error(f'Unable to get OF controllers because: {e}')
         return ofcontrollers
 
+    def find_available_nics(self):
+        try:
+            nics = os.listdir('/sys/class/net/')
+        except FileNotFoundError:
+            logging.error('Unable to get NICs on this system')
+            nics = []
+        # remove special NICs that shouldn't be used
+        special_nics = ['lo', 'ovs-system', 'docker0',
+                        'mirrorbr', 'virbr0', 'virbr0-nic']
+        for special_nic in special_nics:
+            if special_nic in nics:
+                nics.remove(special_nic)
+        try:
+            ovs_output = self.output_command('ovs-vsctl show')
+            used_nics = []
+            for nic in nics:
+                if nic in ovs_output:
+                    used_nics.append(nic)
+            nics = list(list(set(nics)-set(used_nics)) +
+                        list(set(used_nics)-set(nics)))
+        except Exception as e:
+            logging.error(f'Unable to execute ovs-vsctl because: {e}')
+        return nics
+
     def get_network_info(self, val, selections):
         network_opt_answers = {}
         answers = self.execute_prompt(self.network_q_set_1(val))
@@ -287,8 +312,9 @@ class Portunus():
                     {
                         'type': 'input',
                         'name': f'network_nic_{val}',
+                        'validate': NICValidator,
                         'default': 'eno1',
-                        'message': f'What is the name of the NIC you want to attach to {self.info["network_name_"+str(val)]}?',
+                        'message': f'What is the name of the NIC you want to attach to {self.info["network_name_"+str(val)]}? {self.find_available_nics()}',
                     }
                 )
                 network_questions.append(
@@ -1209,13 +1235,8 @@ users:
             self.simple_command('mkdir -p viz_output')
             path = os.getcwd()
             os.chdir('viz_output')
-            # TODO this path shouldn't be hardcoded
-            self.execute_command(
-                ['pip3', 'install', '-r',
-                    '/opt/dovesnap/graph_dovesnap/requirements.txt'],
-                'Ensuring dependencies are installed...')
             self.simple_command(
-                'python3 /opt/dovesnap/graph_dovesnap/graph_dovesnap.py')
+                'graph_dovesnap')
             self.simple_command('python3 -m http.server')
             os.chdir(path)
         else:
