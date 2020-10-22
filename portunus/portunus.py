@@ -391,13 +391,13 @@ class Portunus():
                 {
                     'type': 'input',
                     'name': f'volume_name_{val}',
-                    'when': lambda answers: answers[f'use_volume_{val}'] > 0 and answers[f'use_volume_{val}'],
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0 and answers[f'use_volume_{val}'] > 0 and answers[f'use_volume_{val}'],
                     'message': 'What volume or path would you like to use for your container(s)?',
                 },
                 {
                     'type': 'input',
                     'name': f'mount_point_{val}',
-                    'when': lambda answers: answers[f'use_volume_{val}'] > 0 and answers[f'use_volume_{val}'],
+                    'when': lambda answers: answers[f'num_containers_{val}'] > 0 and answers[f'use_volume_{val}'] > 0 and answers[f'use_volume_{val}'],
                     'message': 'Where should the volume be mounted within your container(s)?',
                 },
                 {
