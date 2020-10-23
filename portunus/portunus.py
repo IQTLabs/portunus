@@ -1154,6 +1154,8 @@ users:
                                                 'dovesnap')], 'cleaning up dovesnap...'),
             (['sudo', 'git', 'clone', 'https://github.com/iqtlabs/dovesnap'],
              'cloning dovesnap...', self.info['dovesnap_path']),
+            (['sudo', 'git', 'checkout', '$(git describe --tags)'],
+             'checking out latest version of dovesnap...'),
             (['sudo', 'mkdir', '-p', '/usr/local/var/run/openvswitch'],
              'ensuring openvswitch directory exists...'),
             (['sudo', 'rm', '-rf', '/usr/local/var/run/openvswitch/db.sock'],
