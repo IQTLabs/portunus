@@ -1154,8 +1154,25 @@ users:
                                                 'dovesnap')], 'cleaning up dovesnap...'),
             (['sudo', 'git', 'clone', 'https://github.com/iqtlabs/dovesnap'],
              'cloning dovesnap...', self.info['dovesnap_path']),
-            (['sudo', 'git', 'checkout', '$(git describe --tags)'],
-             'checking out latest version of dovesnap...'),
+        ]
+        for command in commands:
+            change_dir = None
+            failok = False
+            if len(command) == 3:
+                change_dir = command[2]
+            if len(command) == 4:
+                failok = command[3]
+            if self.execute_command(command[0], command[1], change_dir=change_dir, failok=failok) != 0:
+                sys.exit(1)
+        try:
+            dovesnap_version = self.output_command(
+                'cd ' + self.info['dovesnap_path'] + '/dovesnap && git describe --tags --abbrev=0')
+            self.simple_command(
+                'cd ' + self.info['dovesnap_path'] + '/dovesnap && sudo git checkout ' + dovesnap_version)
+        except Exception as e:
+            logging.error(
+                f'Unable to checkout latest version of Dovesnap because: {e}, using latest from master instead.')
+        commands = [
             (['sudo', 'mkdir', '-p', '/usr/local/var/run/openvswitch'],
              'ensuring openvswitch directory exists...'),
             (['sudo', 'rm', '-rf', '/usr/local/var/run/openvswitch/db.sock'],
