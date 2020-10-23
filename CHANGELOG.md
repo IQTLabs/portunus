@@ -1,3 +1,12 @@
+# v0.2.3 (2020-10-23)
+
+- Validates NIC selection for adding to networks
+- Only add volume options when starting >0 containers
+- Use graph_dovesnap from pip package
+- Use latest released version of dovesnap when installing
+- Implemented option to cleanup dovesnap and ovs containers
+- Updated codecov, faucetconfrpc, ptyprocess
+
 # v0.2.2 (2020-10-09)
 
 - Fix github key retry handling
