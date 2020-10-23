@@ -1163,7 +1163,8 @@ users:
             if len(command) == 4:
                 failok = command[3]
             if self.execute_command(command[0], command[1], change_dir=change_dir, failok=failok) != 0:
-                sys.exit(1)
+                logging.error(
+                    'Command failed, Portunus may not work as expected!')
         dovesnap_version = self.output_command(
             'cd ' + self.info['dovesnap_path'] + '/dovesnap && git describe --tags --abbrev=0')
         self.simple_command(
