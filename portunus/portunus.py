@@ -1163,12 +1163,15 @@ users:
             if len(command) == 4:
                 failok = command[3]
             if self.execute_command(command[0], command[1], change_dir=change_dir, failok=failok) != 0:
-                logging.error(
-                    'Command failed, Portunus may not work as expected!')
-        dovesnap_version = self.output_command(
-            'cd ' + self.info['dovesnap_path'] + '/dovesnap && git describe --tags --abbrev=0')
-        self.simple_command(
-            'cd ' + self.info['dovesnap_path'] + '/dovesnap && sudo git checkout ' + dovesnap_version)
+                sys.exit(1)
+        try:
+            dovesnap_version = self.output_command(
+                'cd ' + self.info['dovesnap_path'] + '/dovesnap && git describe --tags --abbrev=0')
+            self.simple_command(
+                'cd ' + self.info['dovesnap_path'] + '/dovesnap && sudo git checkout ' + dovesnap_version)
+        except Exception as e:
+            logging.error(
+                f'Unable to checkout latest version of Dovesnap because: {e}, using latest from master instead.')
         commands = [
             (['sudo', 'mkdir', '-p', '/usr/local/var/run/openvswitch'],
              'ensuring openvswitch directory exists...'),
