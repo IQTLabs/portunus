@@ -13,12 +13,7 @@ import time
 
 import pytest
 import regex
-from prompt_toolkit.eventloop.posix import PosixEventLoop
-from prompt_toolkit.input import PipeInput
-from prompt_toolkit.interface import CommandLineInterface
-from prompt_toolkit.output import DummyOutput
 from ptyprocess import PtyProcess
-from PyInquirer import prompts
 from PyInquirer import style_from_dict
 from PyInquirer import Token
 

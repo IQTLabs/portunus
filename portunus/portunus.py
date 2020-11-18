@@ -12,8 +12,6 @@ import inflect
 import netifaces
 from PyInquirer import prompt
 from PyInquirer import Separator
-from PyInquirer import style_from_dict
-from PyInquirer import Token
 
 from examples import custom_style_2
 from portunus.faucetrpc import get_faucetconfrpc
@@ -23,7 +21,6 @@ from portunus.validators import IPValidator
 from portunus.validators import NICValidator
 from portunus.validators import NumberValidator
 from portunus.validators import PortValidator
-from portunus.validators import VolumeValidator
 
 
 level_int = {'CRITICAL': 50, 'ERROR': 40, 'WARNING': 30, 'INFO': 20,
@@ -198,7 +195,8 @@ class Portunus():
             },
         ]
 
-    def get_ofcontrollers(self):
+    @staticmethod
+    def get_ofcontrollers():
         ofcontrollers = None
         try:
             client = docker.APIClient(base_url='unix://var/run/docker.sock')
@@ -353,7 +351,7 @@ class Portunus():
                 create_network += ['-o',
                                    f'ovs.bridge.add_ports={answers["network_nic_"+str(val)]}/{answers["network_nic_port_"+str(val)]}']
 
-            ofcontrollers = self.get_ofcontrollers()
+            ofcontrollers = Portunus().get_ofcontrollers()
             if ofcontrollers:
                 create_network += ['-o',
                                    f'ovs.bridge.controller={ofcontrollers}']
@@ -881,8 +879,8 @@ users:
         else:
             sys.exit(0)
         # get additional info for each network
-        for i in range(1, answers['num_networks']+1):
-            network = self.get_network_info(i, selections)
+        # for i in range(1, answers['num_networks']+1):
+        #    network = self.get_network_info(i, selections)
 
     def cleanup_info(self, selections):
         client = docker.from_env()
