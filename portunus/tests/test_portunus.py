@@ -5,8 +5,6 @@ import os
 import sys
 import textwrap
 
-import pytest
-
 from portunus.portunus import Portunus
 from portunus.tests.helpers import create_example_fixture
 from portunus.tests.helpers import keys
