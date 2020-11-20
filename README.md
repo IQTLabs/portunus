@@ -42,4 +42,4 @@ In the menu, if it's the first time, choose `Install Dependencies` in addition t
  - Blog posts:
    - [Bending Network Reality: Merging Virtual and Physical Networks with Dovesnap](https://www.iqt.org/bending-network-reality-merging-virtual-and-physical-networks-with-dovesnap/)
    - [Connecting Containers to Faucet](https://www.vandervecken.com/faucet/index.php/2020/05/23/connecting-containers-to-faucet/)
- - [Technology stack](https://github.com/IQTLabs/portunus/blob/master/examples/environment/example_environment.svg)
+ - [Technology stack](https://github.com/IQTLabs/portunus/blob/master/examples/environment/portunus_tech_stack.svg)
