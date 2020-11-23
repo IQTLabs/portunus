@@ -8,8 +8,6 @@ Portunus uses [dovesnap](https://github.com/IQTLabs/dovesnap) behind the scenes 
 
 Dovesnap also enables each container to be given labels on startup that currently expose two features provided by Faucet: centralized mirroring and ACLs. Portunus also exposes these options to the user, and rounds out the compatibility by wiring in these options for VMs as well.
 
-Portunus can be wholly configured and run on a single machine, no extra hardware or physical switches needed. However, it can also work in a distributed environment where the controller and NFV functions are in a central location and the compute resources can act almost like a cluster where nodes can be added or removed from the controller as the environment complexity needs to change. See the [example environment diagram](https://github.com/IQTLabs/portunus/blob/master/examples/environment/example_environment.svg).
-
 # Dependencies
 
 ```
@@ -30,6 +28,10 @@ portunus
 ```
 
 In the menu, if it's the first time, choose `Install Dependencies` in addition to `Start Containers`.
+
+# Example Environment
+
+Portunus can be wholly configured and run on a single machine, no extra hardware or physical switches needed. However, it can also work in a distributed environment where the controller and NFV functions are in a central location and the compute resources can act almost like a cluster where nodes can be added or removed from the controller as the environment complexity needs to change. See the [example environment diagram](https://github.com/IQTLabs/portunus/blob/master/examples/environment/example_environment.svg).
 
 # Related Components
 
