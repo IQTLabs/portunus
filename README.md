@@ -42,6 +42,7 @@ Portunus can be wholly configured and run on a single machine, no extra hardware
 # Additional Info
 
  - Blog posts:
+   - [Take the Pain out of Orchestrating & Instrumenting Testbed Environments with Portunus](https://www.iqt.org/take-the-pain-out-of-orchestrating-instrumenting-testbed-environments-with-portunus/)
    - [Per-packet Scalable Switch Policy Controls with Dovesnap](https://www.iqt.org/per-packet-scalable-switch-policy-controls-with-dovesnap/)
    - [Bending Network Reality: Merging Virtual and Physical Networks with Dovesnap](https://www.iqt.org/bending-network-reality-merging-virtual-and-physical-networks-with-dovesnap/)
    - [Connecting Containers to Faucet](https://www.vandervecken.com/faucet/index.php/2020/05/23/connecting-containers-to-faucet/)
