@@ -4,4 +4,4 @@ faucetconfrpc==0.22.12
 inflect==5.0.2
 netifaces==0.10.9
 PyInquirer==1.0.3
-ptyprocess==0.6.0
+ptyprocess==0.7.0
