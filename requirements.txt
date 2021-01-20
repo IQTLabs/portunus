@@ -1,5 +1,5 @@
 docker==4.4.1
-dovesnap==0.14.0
+dovesnap==0.15.0
 faucetconfrpc==0.22.15
 inflect==5.0.2
 netifaces==0.10.9
