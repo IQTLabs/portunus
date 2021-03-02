@@ -31,7 +31,7 @@ In the menu, if it's the first time, choose `Install Dependencies` in addition t
 
 # Example Environment
 
-Portunus can be wholly configured and run on a single machine, no extra hardware or physical switches needed. However, it can also work in a distributed environment where the controller and NFV functions are in a central location and the compute resources can act almost like a cluster where nodes can be added or removed from the controller as the environment complexity needs to change. See the [example environment diagram](https://github.com/IQTLabs/portunus/blob/master/examples/environment/example_environment.svg).
+Portunus can be wholly configured and run on a single machine, no extra hardware or physical switches needed. However, it can also work in a distributed environment where the controller and NFV functions are in a central location and the compute resources can act almost like a cluster where nodes can be added or removed from the controller as the environment complexity needs to change. See the [example environment diagram](https://github.com/IQTLabs/portunus/blob/main/examples/environment/example_environment.svg).
 
 # Related Components
 
@@ -46,4 +46,4 @@ Portunus can be wholly configured and run on a single machine, no extra hardware
    - [Per-packet Scalable Switch Policy Controls with Dovesnap](https://www.iqt.org/per-packet-scalable-switch-policy-controls-with-dovesnap/)
    - [Bending Network Reality: Merging Virtual and Physical Networks with Dovesnap](https://www.iqt.org/bending-network-reality-merging-virtual-and-physical-networks-with-dovesnap/)
    - [Connecting Containers to Faucet](https://www.vandervecken.com/faucet/index.php/2020/05/23/connecting-containers-to-faucet/)
- - [Technology stack](https://github.com/IQTLabs/portunus/blob/master/examples/environment/portunus_tech_stack.svg)
+ - [Technology stack](https://github.com/IQTLabs/portunus/blob/main/examples/environment/portunus_tech_stack.svg)

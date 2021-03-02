@@ -1169,7 +1169,7 @@ users:
                 'cd ' + self.info['dovesnap_path'] + '/dovesnap && sudo git checkout ' + dovesnap_version)
         except Exception as e:
             logging.error(
-                f'Unable to checkout latest version of Dovesnap because: {e}, using latest from master instead.')
+                f'Unable to checkout latest version of Dovesnap because: {e}, using latest from "main" instead.')
         commands = [
             (['sudo', 'mkdir', '-p', '/usr/local/var/run/openvswitch'],
              'ensuring openvswitch directory exists...'),
