@@ -243,7 +243,7 @@ class Portunus():
         if 'network_exist' in answers and not answers['network_exist']:
             network_mode = 'nat' if self.info[f'network_mode_{val}'] else 'flat'
             create_network = ['docker', 'network', 'create', '--internal', '-d',
-                              'ovs', '-o', f'ovs.bridge.mode={network_mode}']
+                              'dovesnap', '-o', f'ovs.bridge.mode={network_mode}']
             if 'network_options' in answers and answers['network_options']:
                 network_opt_answers = answers['network_options']
             if f'network_dhcp_{val}' in self.info and self.info[f'network_dhcp_{val}']:
