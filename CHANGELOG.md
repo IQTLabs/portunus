@@ -1,3 +1,7 @@
+# v0.2.4 (2021-08-30)
+
+- Updated dependencies
+
 # v0.2.3 (2020-10-23)
 
 - Validates NIC selection for adding to networks
