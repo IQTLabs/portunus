@@ -1,4 +1,4 @@
-docker==5.0.0
+docker==5.0.1
 dovesnap==1.0.1
 faucetconfrpc==0.22.22
 inflect==5.3.0
